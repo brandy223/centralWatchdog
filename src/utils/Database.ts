@@ -1,6 +1,8 @@
 
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+    log: ['query', 'info', 'warn']
+});
 
 /**
  * Check if a server exists in the database
@@ -23,9 +25,10 @@ export async function isServerInDatabase (ip: string) : Promise<boolean> {
  */
 export async function isServerCentral (ip: string) : Promise<boolean> {
     if (ip === undefined || ip === null) throw new Error("IP is null or undefined");
-    if (!await isServerInDatabase(ip)) throw new Error("Server is not in database");
     const server = await prisma.servers.findUnique({ where: { ipAddr: ip } });
-    return server !== undefined && server !== null && server.type === "CENTRAL";
+    console.log(server);
+    if (server === undefined || server === null) throw new Error("Server is not in database");
+    return server.type === "CENTRAL";
 }
 
 /**
@@ -64,7 +67,7 @@ export async function getServerByIP (ip: string) : Promise<any> {
  * @throws {Error} No node servers in the database
  */
 export async function getNodeServers () : Promise<any> {
-    const nodeServers = await prisma.servers.findMany({where: {type: "NODE"}});
+    const nodeServers = await prisma.servers.findMany({where: {type: "Node"}});
     if (nodeServers === undefined || nodeServers === null) throw new Error("No node servers in database");
     return nodeServers;
 }
@@ -108,5 +111,24 @@ export async function updateServerType (ip: string, type: string) : Promise<void
     await prisma.servers.update({
         where: { ipAddr: ip },
         data: { type: type }
+    });
+}
+
+/**
+ * Update server's port
+ * @param ip
+ * @param port
+ * @returns {Promise<void>}
+ * @throws {Error} If the ip is null or undefined
+ * @throws {Error} If the port is null or undefined
+ * @throws {Error} If the server is not in the database
+ */
+export async function updateServerPort (ip: string, port: number) : Promise<void> {
+    if (ip === undefined || ip === null) throw new Error("IP is null or undefined");
+    if (port === undefined || port === null) throw new Error("Port is null or undefined");
+    if (!await isServerInDatabase(ip)) throw new Error("Server is not in database");
+    await prisma.servers.update({
+        where: { ipAddr: ip },
+        data: { port: port }
     });
 }
