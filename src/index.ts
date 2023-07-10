@@ -21,14 +21,18 @@ async function main(): Promise<void> {
     // VERIFY SERVER EXISTS IN DATABASE
     const isServerInDatabase = await Database.isServerInDatabase(ip);
     if (!isServerInDatabase) {
-        await Database.addServerToDatabase(ip, "Central", process.env.SERVER_PORT);
+        await Database.addServerToDatabase(ip, "Central", Number(process.env.SERVER_PORT));
         console.log(`Added node server to database`);
     } else {
-        const isServerCentral = await Database.isServerCentral(ip);
-        if (!isServerCentral) {
+        const isServerACentral = await Database.isServerCentral(ip);
+        if (!isServerACentral) {
             await Database.updateServerType(ip, "Central");
         }
-
+        const isPortSet = await Database.isPortSet(ip);
+        if (!isPortSet) {
+            // await Database.update(ip, process.env.SERVER_PORT);
+            await Database.updateServerPort(ip, process.env.SERVER_PORT);
+        }
     }
 }
 
