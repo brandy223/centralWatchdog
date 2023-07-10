@@ -20,15 +20,15 @@ model Services {
 }
 
 enum ServerStatus {
-  NORMAL
-  NODE
-  CENTRAL
+  Normal
+  Node
+  Central
 }
 
 model Servers {
   id       Int                 @id @default(autoincrement())
   ipAddr   String              @unique @db.VarChar(64)
-  type     ServerStatus        @default(NORMAL)
+  type     ServerStatus        @default(Normal)
   port     Int?                @db.MediumInt
   services ServicesOfServers[]
 }
