@@ -1,8 +1,6 @@
 
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient({
-    log: ['query', 'info', 'warn']
-});
+const prisma = new PrismaClient();
 
 /**
  * Check if a server exists in the database
@@ -26,9 +24,8 @@ export async function isServerInDatabase (ip: string) : Promise<boolean> {
 export async function isServerCentral (ip: string) : Promise<boolean> {
     if (ip === undefined || ip === null) throw new Error("IP is null or undefined");
     const server = await prisma.servers.findUnique({ where: { ipAddr: ip } });
-    console.log(server);
-    if (server === undefined || server === null) throw new Error("Server is not in database");
-    return server.type === "CENTRAL";
+    if (server === null || server === undefined) throw new Error("Server is not in database");
+    return server?.type === "Central";
 }
 
 /**
