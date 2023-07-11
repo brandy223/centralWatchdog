@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Services {
+  id      Int                  @id @default(autoincrement())
+  name    String               @db.VarChar(255)
+  portNo  Int                  @db.MediumInt
+  timeout Int                  @default(5000) @db.MediumInt
+  servers ServicesOfServers[]
+  objects ServicesAndObjects[]
+}
+
+enum ServerStatus {
+  Normal
+  Node
+  Central
+}
+
+model Servers {
+  id       Int                 @id @default(autoincrement())
+  ipAddr   String              @unique @db.VarChar(64)
+  type     ServerStatus        @default(Normal)
+  port     Int?                @db.MediumInt
+  services ServicesOfServers[]
+}
+
+model ServicesOfServers {
+  serviceId Int
+  serverId  Int
+  service   Services @relation(fields: [serviceId], references: [id])
+  server    Servers  @relation(fields: [serverId], references: [id])
+
+  jobId Int?  @unique
+  job   Jobs? @relation(fields: [jobId], references: [id])
+
+  @@id([serviceId, serverId])
+}
+
+model Objects {
+  id          Int                  @id @default(autoincrement())
+  nom         String               @db.VarChar(255)
+  description String?              @db.VarChar(255)
+  services    ServicesAndObjects[]
+}
+
+model ServicesAndObjects {
+  serviceId Int
+  objectId  Int
+  service   Services @relation(fields: [serviceId], references: [id])
+  object    Objects  @relation(fields: [objectId], references: [id])
+
+  @@id([serviceId, objectId])
+}
+
+model Jobs {
+  id              Int                 @id @default(autoincrement())
+  nom             String              @db.VarChar(255)
+  tempsIntervalle Int                 @db.MediumInt
+  tempsTimeout    Int                 @db.MediumInt
+  services        ServicesOfServers[]
+}
