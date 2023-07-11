@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.0.x"]
 }
 
 datasource db {
@@ -30,6 +31,7 @@ model Servers {
   ipAddr   String              @unique @db.VarChar(64)
   type     ServerStatus        @default(Normal)
   port     Int?                @db.MediumInt
+  priority Int?                @db.TinyInt
   services ServicesOfServers[]
 }
 
@@ -67,4 +69,85 @@ model Jobs {
   tempsIntervalle Int                 @db.MediumInt
   tempsTimeout    Int                 @db.MediumInt
   services        ServicesOfServers[]
+  stateValues     StateValues[]
+}
+
+model StateValues {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  description String?   @db.VarChar(255)
+  value       String    @db.VarChar(255)
+  jobId       Int
+  scenarioId  Int
+  job         Jobs      @relation(fields: [jobId], references: [id])
+  scenario    Scenarios @relation(fields: [scenarioId], references: [id])
+}
+
+model Scenarios {
+  id          Int                  @id @default(autoincrement())
+  name        String               @db.VarChar(255)
+  description String?              @db.VarChar(255)
+  stateValues StateValues[]
+  actions     ActionsOfScenarios[]
+}
+
+model Actions {
+  id          Int                     @id @default(autoincrement())
+  name        String                  @db.VarChar(255)
+  description String?                 @db.VarChar(255)
+  scenarios   ActionsOfScenarios[]
+  actors      ActorsForActions[]
+  lists       ActorsListsForActions[]
+}
+
+model ActionsOfScenarios {
+  scenarioId Int
+  actionId   Int
+  scenario   Scenarios @relation(fields: [scenarioId], references: [id])
+  action     Actions   @relation(fields: [actionId], references: [id])
+
+  @@id([actionId, scenarioId])
+}
+
+model Actors {
+  id      Int                @id @default(autoincrement())
+  name    String             @db.VarChar(255)
+  email   String?            @db.VarChar(255)
+  number  String?            @db.VarChar(255)
+  lists   ActorsAndLists[]
+  actions ActorsForActions[]
+}
+
+model ActorsLists {
+  id      Int                     @id @default(autoincrement())
+  name    String                  @db.VarChar(255)
+  actors  ActorsAndLists[]
+  actions ActorsListsForActions[]
+}
+
+model ActorsAndLists {
+  actorId Int
+  listId  Int
+  actor   Actors      @relation(fields: [actorId], references: [id])
+  list    ActorsLists @relation(fields: [listId], references: [id])
+
+  @@id([actorId, listId])
+}
+
+model ActorsForActions {
+  actionId Int
+  actorId  Int
+  action   Actions @relation(fields: [actionId], references: [id])
+  actor    Actors  @relation(fields: [actorId], references: [id])
+
+  @@id([actionId, actorId])
+}
+
+model ActorsListsForActions {
+  actionId Int
+  listId   Int
+  action   Actions     @relation(fields: [actionId], references: [id])
+  list     ActorsLists @relation(fields: [listId], references: [id])
+
+  @@id([actionId, listId])
 }
