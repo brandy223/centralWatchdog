@@ -21,8 +21,8 @@ app.use(bodyParser);
 // app.use(bodyParser.urlencoded({extended: true}));
 
 async function main(): Promise<void> {
-    await serverDatabaseInit();
-    const io = await webServerInit();
+    await centralServerDatabaseInit();
+    const io = await centralWebServerInit();
 
     // app.post('/', async (req: any, res: any) => {
     //     console.log(req.body);
@@ -52,7 +52,7 @@ async function main(): Promise<void> {
 
 main();
 
-async function serverDatabaseInit(): Promise<void> {
+async function centralServerDatabaseInit(): Promise<void> {
     let serverPriority = 1;
 
     // GET LOCAL IP
@@ -68,29 +68,21 @@ async function serverDatabaseInit(): Promise<void> {
         await Database.addServerToDatabase(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
         console.log(`Added node server to database`);
     } else {
-        if (!await Database.isServerCentral(ip)) {
-            await Database.updateServerType(ip, "Central");
-            console.log(`Updated server type to Central`);
+        if (!await Database.isServerCentral(ip) || !await Database.isPortSet(ip) || !await Database.isServerPrioritySet(ip)) {
+            await Database.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+            console.log(`Updated server information`);
         }
-        if (!await Database.isPortSet(ip)) {
-            await Database.updateServerPort(ip, Number(process.env.SERVER_PORT));
-            console.log(`Updated server port to ${process.env.SERVER_PORT}`);
-        }
-        else {
-            const port = await Database.getServerByIP(ip);
-            if (port !== Number(process.env.SERVER_PORT)) {
-                await Database.updateServerPort(ip, Number(process.env.SERVER_PORT));
+        else if (await Database.isPortSet(ip)) {
+            const server = await Database.getServerByIP(ip);
+            if (server.port !== Number(process.env.SERVER_PORT)) {
+                await Database.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
                 console.log(`Updated server port to ${process.env.SERVER_PORT}`);
             }
-        }
-        if (!await Database.isServerPrioritySet(ip)) {
-            await Database.updateServerPriority(ip, serverPriority);
-            console.log(`Updated server priority to ${serverPriority}`);
         }
     }
 }
 
-async function webServerInit(): Promise<any> {
+async function centralWebServerInit(): Promise<any> {
     // WEB SERVER SETUP
     const server = http.createServer(app);
     server.listen(process.env.SERVER_PORT, () => {
