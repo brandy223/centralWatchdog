@@ -4,11 +4,14 @@ dotenv.config();
 
 const Network = require('./utils/Network');
 const Database = require('./utils/Database');
+const theme = require('./utils/ColorScheme').theme;
 
 const express = require('express');
 const app = express();
 const http = require('http')
 const { Server } = require("socket.io");
+
+app.use(express.json());
 
 const corsOptions = {
     // origin: '192.168.10.58',
@@ -17,9 +20,6 @@ const corsOptions = {
     optionsSuccessStatus: 200,
     credentials: true
 }
-
-// app.use(express.json());
-// app.use(bodyParser.urlencoded({extended: true}));
 
 async function main(): Promise<void> {
     await centralServerDatabaseInit();
@@ -30,36 +30,21 @@ async function main(): Promise<void> {
         allowEIO3: true, // false by default
     });
 
-    console.log(io);
-
-    io.on("error", function () {
-        console.log("error");
+    io.on("error", () => {
+        console.log(theme.error("Error"));
     });
 
-    // app.post('/', async (req: any, res: any) => {
-    //     console.log(req.body);
-    //     res.body = { status: "OK" };
-    //     res.send(res.body);
-    // });
-
     io.on('connection', (socket: any) => {
-        console.log("New connection");
-        // socket.on("open_session", function (session: any) {
-        //     console.log(session);
-        //     socket.session = session;
-        //     console.log("socket.session à la connexion: ");
-        //     console.log(socket.session);
-        // });
-        //
-        // socket.on("disconnect", function () {
-        //     console.log("socket.session à la déconnexion: ");
-        //     console.log(socket.session);
-        // });
-        //
-        // socket.on("message", function (message: object) {
-        //     console.log(message);
-        //     socket.broadcast.emit("message", message);
-        // });
+        console.log(theme.info("New connection from " + socket.request.connection.remoteAddress.substring(7)));
+
+        socket.on("message", function (message: object) {
+            console.log(message);
+            socket.broadcast.emit("message", message);
+        });
+
+        socket.on("disconnect", function () {
+            console.log(theme.warning("Client disconnected"));
+        });
     });
 
     server.listen(process.env.SERVER_PORT, () => {
