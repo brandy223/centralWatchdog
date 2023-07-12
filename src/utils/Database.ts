@@ -1,5 +1,6 @@
 
 const { PrismaClient } = require('@prisma/client');
+const Network = require('./Network');
 
 const prisma = new PrismaClient(
     {
@@ -133,4 +134,52 @@ export async function updateServer (ip: string, type: string, port: number, prio
             priority: priority
         }
     });
+}
+
+/**
+ * Initialize the central server in database
+ */
+export async function centralServerDatabaseInit(): Promise<void> {
+    let serverPriority = 1;
+
+    // GET LOCAL IP
+    const ip = await Network.getLocalIP();
+    if (ip === undefined) throw new Error("Could not get local IP");
+    else
+        console.log(`Local IP: ${ip}`);
+
+    // VERIFY IF ANOTHER CENTRAL SERVER EXISTS IN DATABASE
+    if (await isThereAnotherCentralServer(ip)) {
+        serverPriority = 0;
+    }
+
+    // VERIFY SERVER EXISTS IN DATABASE
+    if (!await isServerInDatabase(ip)) {
+        await addServerToDatabase(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+        console.log(`Added node server to database`);
+        return;
+    }
+
+    // IF SERVER ALREADY IN DATABASE
+    if (!await isServerCentral(ip) || !await isPortSet(ip) || !await isServerPrioritySet(ip)) {
+        await updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+        console.log(`Updated server information`);
+        return;
+    }
+
+    // IF SERVERS INFORMATION ARE CORRECT
+    if (await isPortSet(ip)) {
+        const server = await getServerByIP(ip);
+        if (server.port !== Number(process.env.SERVER_PORT)) {
+            await updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+            console.log(`Updated server port to ${process.env.SERVER_PORT}`);
+        }
+    }
+    if (await isServerPrioritySet(ip)) {
+        const server = await getServerByIP(ip);
+        if (server.priority !== serverPriority) {
+            await updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+            console.log(`Updated server priority to ${serverPriority}`);
+        }
+    }
 }

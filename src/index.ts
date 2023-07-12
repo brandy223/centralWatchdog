@@ -22,7 +22,7 @@ const corsOptions = {
 }
 
 async function main(): Promise<void> {
-    await centralServerDatabaseInit();
+    await Database.centralServerDatabaseInit();
 
     const server = http.createServer(app);
     const io = new Server(server, {
@@ -53,48 +53,3 @@ async function main(): Promise<void> {
 }
 
 main();
-
-async function centralServerDatabaseInit(): Promise<void> {
-    let serverPriority = 1;
-
-    // GET LOCAL IP
-    const ip = await Network.getLocalIP();
-    if (ip === undefined) throw new Error("Could not get local IP");
-    else
-        console.log(`Local IP: ${ip}`);
-
-    // VERIFY IF ANOTHER CENTRAL SERVER EXISTS IN DATABASE
-    if (await Database.isThereAnotherCentralServer(ip)) {
-        serverPriority = 0;
-    }
-
-    // VERIFY SERVER EXISTS IN DATABASE
-    if (!await Database.isServerInDatabase(ip)) {
-        await Database.addServerToDatabase(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
-        console.log(`Added node server to database`);
-        return;
-    }
-
-    // IF SERVER ALREADY IN DATABASE
-    if (!await Database.isServerCentral(ip) || !await Database.isPortSet(ip) || !await Database.isServerPrioritySet(ip)) {
-        await Database.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
-        console.log(`Updated server information`);
-        return;
-    }
-
-    // IF SERVERS INFORMATION ARE CORRECT
-    if (await Database.isPortSet(ip)) {
-        const server = await Database.getServerByIP(ip);
-        if (server.port !== Number(process.env.SERVER_PORT)) {
-            await Database.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
-            console.log(`Updated server port to ${process.env.SERVER_PORT}`);
-        }
-    }
-    if (await Database.isServerPrioritySet(ip)) {
-        const server = await Database.getServerByIP(ip);
-        if (server.priority !== serverPriority) {
-            await Database.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
-            console.log(`Updated server priority to ${serverPriority}`);
-        }
-    }
-}
