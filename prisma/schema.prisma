@@ -14,7 +14,7 @@ datasource db {
 model Services {
   id      Int                  @id @default(autoincrement())
   name    String               @db.VarChar(255)
-  portNo  Int                  @db.MediumInt
+  portNo  Int?                 @db.MediumInt
   timeout Int                  @default(5000) @db.MediumInt
   servers ServicesOfServers[]
   objects ServicesAndObjects[]
@@ -49,7 +49,7 @@ model ServicesOfServers {
 
 model Objects {
   id          Int                  @id @default(autoincrement())
-  nom         String               @db.VarChar(255)
+  name        String               @db.VarChar(255)
   description String?              @db.VarChar(255)
   services    ServicesAndObjects[]
 }
@@ -64,12 +64,12 @@ model ServicesAndObjects {
 }
 
 model Jobs {
-  id              Int                 @id @default(autoincrement())
-  nom             String              @db.VarChar(255)
-  tempsIntervalle Int                 @db.MediumInt
-  tempsTimeout    Int                 @db.MediumInt
-  services        ServicesOfServers[]
-  stateValues     StateValues[]
+  id          Int                 @id @default(autoincrement())
+  name        String              @db.VarChar(255)
+  interval    Int                 @db.MediumInt
+  timeout     Int                 @db.MediumInt
+  services    ServicesOfServers[]
+  stateValues StateValues[]
 }
 
 model StateValues {

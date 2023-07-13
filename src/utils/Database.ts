@@ -156,7 +156,7 @@ export async function centralServerDatabaseInit(): Promise<void> {
     // VERIFY SERVER EXISTS IN DATABASE
     if (!await isServerInDatabase(ip)) {
         await addServerToDatabase(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
-        console.log(`Added node server to database`);
+        console.log(`Added central server to database`);
         return;
     }
 
