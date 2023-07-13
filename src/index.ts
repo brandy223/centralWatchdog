@@ -35,15 +35,15 @@ async function main(): Promise<void> {
     });
 
     io.on('connection', (socket: any) => {
-        console.log(theme.info("New connection from " + socket.request.connection.remoteAddress.substring(7)));
+        console.log(theme.info("New connection " + socket.id + " from " + socket.request.connection.remoteAddress.substring(7)));
 
         socket.on("message", function (message: object) {
             console.log(message);
-            socket.broadcast.emit("message", message);
+            socket.broadcast.emit("broadcast", message);
         });
 
         socket.on("disconnect", function () {
-            console.log(theme.warning("Client disconnected"));
+            console.log(theme.warning("Client " + socket.id + " disconnected"));
         });
     });
 
