@@ -2,7 +2,6 @@
 const dotenv = require('dotenv');
 dotenv.config();
 
-const Network = require('./utils/Network');
 const Database = require('./utils/Database');
 const theme = require('./utils/ColorScheme').theme;
 
