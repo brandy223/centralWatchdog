@@ -30,6 +30,8 @@ async function main(): Promise<void> {
         allowEIO3: true, // false by default
     });
 
+    const nodeServersMainSockets = new Map();
+
     io.on("error", () => {
         console.log(theme.error("Error"));
     });
@@ -39,11 +41,24 @@ async function main(): Promise<void> {
 
         socket.on("message", function (message: object) {
             console.log(message);
-            socket.broadcast.emit("broadcast", message);
+            socket.to("main").emit("room_broadcast", message);
+            console.log(theme.info("Message's broadcasted"));
         });
 
         socket.on("disconnect", function () {
-            console.log(theme.warning("Client " + socket.id + " disconnected"));
+            if (nodeServersMainSockets.has(socket.id)) {
+                console.log(theme.warning("Main Client " + socket.id + " disconnected : " + nodeServersMainSockets.get(socket.id)));
+                nodeServersMainSockets.delete(socket.id);
+            }
+            else console.log(theme.warning("Client " + socket.id + " disconnected"));
+        });
+
+        socket.on("main_connection", async (ip: string) => {
+           console.log(theme.warningBright("New Main Connection from " + ip));
+           socket.emit("main_connection_ack", "OK");
+           socket.join("main");
+           socket.to("main").emit("room_broadcast", "New server connected: " + ip);
+           nodeServersMainSockets.set(socket.id, ip);
         });
     });
 
