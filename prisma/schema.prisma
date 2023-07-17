@@ -33,6 +33,7 @@ model Servers {
   port     Int?                @db.MediumInt
   priority Int?                @db.TinyInt
   services ServicesOfServers[]
+  jobs     ServersOfJobs[]
 }
 
 model ServicesOfServers {
@@ -45,6 +46,15 @@ model ServicesOfServers {
   job   Jobs? @relation(fields: [jobId], references: [id])
 
   @@id([serviceId, serverId])
+}
+
+model ServersOfJobs {
+  serverId Int
+  jobId    Int
+  server   Servers @relation(fields: [serverId], references: [id])
+  job      Jobs    @relation(fields: [jobId], references: [id])
+
+  @@id([serverId, jobId])
 }
 
 model Objects {
@@ -70,6 +80,7 @@ model Jobs {
   timeout     Int                 @db.MediumInt
   services    ServicesOfServers[]
   stateValues StateValues[]
+  servers     ServersOfJobs[]
 }
 
 model StateValues {
