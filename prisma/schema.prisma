@@ -89,6 +89,8 @@ model StateValues {
   name        String    @db.VarChar(255)
   description String?   @db.VarChar(255)
   value       String    @db.VarChar(255)
+  typeOfValue Int       @db.TinyInt
+  priority    Int       @db.TinyInt
   jobId       Int?
   serverId    Int?
   scenarioId  Int
