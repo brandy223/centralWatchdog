@@ -109,6 +109,23 @@ export async function getServerById (id: number) : Promise<any> {
 }
 
 /**
+ * Get job by id
+ * @param {number} id The id of the job
+ * @returns {Promise<*>} The job
+ */
+export async function getJobById (id: number) : Promise<any> {
+    return prisma.jobs.findUnique({where: {id: id}});
+}
+
+/** Get state value by id
+ * @param {number} id The id of the state value
+ * @returns {Promise<*>} The state value
+ */
+export async function getStateValueById (id: number) : Promise<any> {
+    return prisma.stateValues.findUnique({where: {id: id}});
+}
+
+/**
  * Add a server to the database
  * @param {string} ip The ip of the server
  * @param {string} type The type of the server (CENTRAL or NODE)
@@ -160,6 +177,46 @@ export async function updateServer (ip: string, type: string, port: number, prio
 export async function getServerStateValues (id: number) : Promise<any> {
     if ((await getServerById(id)) === undefined) throw new Error("Server is not in database");
     return prisma.stateValues.findMany({where: {serverId: id}});
+}
+
+/**
+ * Get all the state values of a job
+ * @param {number} id The id of the job
+ * @returns {Promise<*>} The state values of the job
+ * @throws {Error} If the job is not in the database
+ */
+export async function getJobStateValues (id: number) : Promise<any[]> {
+if ((await getJobById(id)) === undefined) throw new Error("Job is not in database");
+    return prisma.stateValues.findMany({where: {jobId: id}});
+}
+
+/**
+ * Get scenario by id
+ * @param {number} id The id of the scenario
+ * @returns {Promise<*>} The scenario
+ */
+export async function getScenarioById (id: number) : Promise<any> {
+    return prisma.scenarios.findUnique({where: {id: id}});
+}
+
+/**
+ * Get actions of a scenario
+ * @param {number} id The id of the scenario
+ * @returns {Promise<*>} The actions of the scenario
+ * @throws {Error} If the scenario is not in the database
+ */
+export async function getScenarioActionsIds (id: number) : Promise<any> {
+    if ((await getScenarioById(id)) === undefined) throw new Error("Scenario is not in database");
+    return prisma.actionsOfScenarios.findMany({ where: {scenarioId: id}});
+}
+
+/**
+ * get actions by ids
+ * @param {number[]} ids The ids of the actions to get
+ * @returns {Promise<*>} The actions
+ */
+export async function getActionsByIds (ids: number[]) : Promise<any> {
+    return prisma.actions.findMany({where: {id: {in: ids}}});
 }
 
 /**
