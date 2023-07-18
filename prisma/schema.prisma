@@ -27,13 +27,14 @@ enum ServerStatus {
 }
 
 model Servers {
-  id       Int                 @id @default(autoincrement())
-  ipAddr   String              @unique @db.VarChar(64)
-  type     ServerStatus        @default(Normal)
-  port     Int?                @db.MediumInt
-  priority Int?                @db.TinyInt
-  services ServicesOfServers[]
-  jobs     ServersOfJobs[]
+  id          Int                 @id @default(autoincrement())
+  ipAddr      String              @unique @db.VarChar(64)
+  type        ServerStatus        @default(Normal)
+  port        Int?                @db.MediumInt
+  priority    Int?                @db.TinyInt
+  services    ServicesOfServers[]
+  jobs        ServersOfJobs[]
+  stateValues StateValues[]
 }
 
 model ServicesOfServers {
@@ -88,9 +89,11 @@ model StateValues {
   name        String    @db.VarChar(255)
   description String?   @db.VarChar(255)
   value       String    @db.VarChar(255)
-  jobId       Int
+  jobId       Int?
+  serverId    Int?
   scenarioId  Int
-  job         Jobs      @relation(fields: [jobId], references: [id])
+  job         Jobs?     @relation(fields: [jobId], references: [id])
+  server      Servers?  @relation(fields: [serverId], references: [id])
   scenario    Scenarios @relation(fields: [scenarioId], references: [id])
 }
 
