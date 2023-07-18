@@ -79,24 +79,18 @@ export async function isServerPrioritySet (ip: string) : Promise<boolean> {
  * Get server by ip
  * @param {string} ip The ip of the server
  * @returns {Promise<*>} The server
- * @throws {Error} If the server is not in the database
  */
 export async function getServerByIP (ip: string) : Promise<any> {
-    const server = prisma.servers.findUnique({where: {ipAddr: ip}});
-    if (server === null) throw new Error("Server is not in database");
-    return server;
+    return prisma.servers.findUnique({where: {ipAddr: ip}});
 }
 
 /**
  * Get servers by type
  * @param {string} type The type of the server (Central or Node)
  * @returns {Promise<*>} Array of node servers
- * @throws {Error} No node servers in the database
  */
 export async function getServerByType (type: string) : Promise<any> {
-    const servers = await prisma.servers.findMany({where: {type: type}});
-    if (servers.length === 0) throw new Error("No servers in database");
-    return servers;
+    return prisma.servers.findMany({where: {type: type}});
 }
 
 /**
@@ -251,16 +245,15 @@ export async function centralServerDatabaseInit(): Promise<void> {
     }
 
     // IF SERVERS INFORMATION ARE CORRECT
+    const server = await getServerByIP(ip);
     if (await isPortSet(ip)) {
-        const server = await getServerByIP(ip);
-        if (server.port !== Number(process.env.SERVER_PORT)) {
+        if (server?.port !== Number(process.env.SERVER_PORT)) {
             await updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
             console.log(`Updated server port to ${process.env.SERVER_PORT}`);
         }
     }
     if (await isServerPrioritySet(ip)) {
-        const server = await getServerByIP(ip);
-        if (server.priority !== serverPriority) {
+        if (server?.priority !== serverPriority) {
             await updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
             console.log(`Updated server priority to ${serverPriority}`);
         }
