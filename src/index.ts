@@ -13,6 +13,13 @@ const { Server } = require("socket.io");
 
 app.use(express.json());
 
+
+
+
+// TODO: WHITELIST
+
+let jobs = await Database.getAllJobs();
+let serversIds
 const corsOptions = {
     // origin: '192.168.10.58',
     origin: '*',
@@ -20,6 +27,12 @@ const corsOptions = {
     optionsSuccessStatus: 200,
     credentials: true
 }
+
+// TODO: WHITELIST
+
+
+
+
 
 async function main(): Promise<void> {
     await Database.centralServerDatabaseInit();

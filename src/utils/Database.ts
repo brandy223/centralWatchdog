@@ -120,6 +120,43 @@ export async function getStateValueById (id: number) : Promise<any> {
 }
 
 /**
+ * Get all jobs
+ * @returns {Promise<*>} Array of jobs
+ */
+export async function getAllJobs () : Promise<any> {
+    return prisma.jobs.findMany();
+}
+
+/**
+ * Get servers by ids
+ * @param {number[]} ids The ids of the servers
+ * @returns {Promise<*>} Array of servers
+ * @throws {Error} If ids is empty
+ */
+export async function getServersByIds (ids: number[]) : Promise<any> {
+    if (ids.length === 0) throw new Error("Ids is empty");
+    return prisma.servers.findMany({where: {id: {in: ids}}});
+}
+
+/**
+ * Get servers ids of jobs
+ * @param {number[]} ids The ids of the jobs
+ * @returns {Promise<*>} Array of servers ids
+ * @throws {Error} If ids is empty
+ */
+export async function getServersIdsOfJobs (ids: number[]) : Promise<any> {
+    if (ids.length === 0) throw new Error("Ids is empty");
+    return prisma..findMany({
+        // TODO: Need to set serversOfJobs here
+        where: {
+            jobId: {
+                in: ids
+            }
+        }
+    }
+}
+
+/**
  * Add a server to the database
  * @param {string} ip The ip of the server
  * @param {string} type The type of the server (CENTRAL or NODE)
