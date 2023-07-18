@@ -87,10 +87,25 @@ export async function getServerByIP (ip: string) : Promise<any> {
     return server;
 }
 
+/**
+ * Get servers by type
+ * @param {string} type The type of the server (Central or Node)
+ * @returns {Promise<*>} Array of node servers
+ * @throws {Error} No node servers in the database
+ */
 export async function getServerByType (type: string) : Promise<any> {
     const servers = await prisma.servers.findMany({where: {type: type}});
     if (servers.length === 0) throw new Error("No servers in database");
     return servers;
+}
+
+/**
+ * Get server by id
+ * @param {number} id The id of the server
+ * @returns {Promise<*>} The server
+ */
+export async function getServerById (id: number) : Promise<any> {
+    return prisma.servers.findUnique({where: {id: id}});
 }
 
 /**
@@ -134,6 +149,17 @@ export async function updateServer (ip: string, type: string, port: number, prio
             priority: priority
         }
     });
+}
+
+/**
+ * Get all the state values of a server
+ * @param {number} id The id of the server
+ * @returns {Promise<*>} The state values of the server
+ * @throws {Error} If the server is not in the database
+ */
+export async function getServerStateValues (id: number) : Promise<any> {
+    if ((await getServerById(id)) === undefined) throw new Error("Server is not in database");
+    return prisma.stateValues.findMany({where: {serverId: id}});
 }
 
 /**
