@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const Database = require('./utils/Database');
+const Message = require('./utils/Message');
 const theme = require('./utils/ColorScheme').theme;
 
 const express = require('express');
@@ -38,13 +39,16 @@ async function main(): Promise<void> {
     io.on('connection', (socket: any) => {
         console.log(theme.info("New connection " + socket.id + " from " + socket.request.connection.remoteAddress.substring(7)));
 
-        socket.on("message", function (message: object) {
+        socket.on("message", async (message: object) => {
             console.log(message);
             socket.to("main").emit("room_broadcast", message);
             console.log(theme.info("Message's broadcasted"));
+
+            // Message Parsing
+            await Message.parseMessage(message);
         });
 
-        socket.on("disconnect", function () {
+        socket.on("disconnect", () => {
             if (nodeServersMainSockets.has(socket.id)) {
                 console.log(theme.warning("Main Client " + socket.id + " disconnected : " + nodeServersMainSockets.get(socket.id)));
                 nodeServersMainSockets.delete(socket.id);
