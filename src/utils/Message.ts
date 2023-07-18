@@ -1,6 +1,6 @@
 
 const Database = require('./Database');
-const MapUtils = require('./Map');
+const MapUtils = require('./Utilities/Map');
 const theme = require('./ColorScheme').theme;
 
 const sendMessage = require('../Actions/SendMessage').sendMessage;
