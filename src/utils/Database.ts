@@ -146,14 +146,13 @@ export async function getServersByIds (ids: number[]) : Promise<any> {
  */
 export async function getServersIdsOfJobs (ids: number[]) : Promise<any> {
     if (ids.length === 0) throw new Error("Ids is empty");
-    return prisma..findMany({
-        // TODO: Need to set serversOfJobs here
+    return prisma.serversOfJobs.findMany({
         where: {
             jobId: {
                 in: ids
             }
         }
-    }
+    });
 }
 
 /**

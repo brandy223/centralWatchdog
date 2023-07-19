@@ -13,29 +13,21 @@ const { Server } = require("socket.io");
 
 app.use(express.json());
 
-
-
-
-// TODO: WHITELIST
-
-let jobs = await Database.getAllJobs();
-let serversIds
-const corsOptions = {
-    // origin: '192.168.10.58',
-    origin: '*',
-    methods: ['GET', 'POST'],
-    optionsSuccessStatus: 200,
-    credentials: true
-}
-
-// TODO: WHITELIST
-
-
-
-
-
 async function main(): Promise<void> {
     await Database.centralServerDatabaseInit();
+
+    let jobsIds = (await Database.getAllJobs()).map((job: any) => job.id);
+    let serversIds = (await Database.getServersIdsOfJobs(jobsIds)).map((server: any) => server.serverId);
+    let serversIpAddr = (await Database.getServersByIds(serversIds)).map((server: any) => server.ipAddr);
+    const corsOptions = {
+        // * WHITELIST
+        origin: serversIpAddr,
+        // origin: '192.168.10.58',
+        // origin: '*',
+        methods: ['GET', 'POST'],
+        optionsSuccessStatus: 200,
+        credentials: true
+    }
 
     const server = http.createServer(app);
     const io = new Server(server, {
@@ -58,7 +50,7 @@ async function main(): Promise<void> {
             console.log(theme.info("Message's broadcasted"));
 
             // Message Parsing
-            await Message.parseMessage(message);
+            // await Message.parseMessage(message);
         });
 
         socket.on("disconnect", () => {
