@@ -5,20 +5,22 @@ const nodemailer = require('nodemailer');
 const config = {
     mail: {
         host: process.env.MAIL_HOST,
-        port: process.env.MAIL_PORT,
-        secure: true,
+        // port: process.env.MAIL_PORT,
+        secure: false,
+        port: 25,
         // auth: {
         //     user: process.env.MAIL_AUTH_USER,
         //     pass: process.env.MAIL_AUTH_PASS
+        // },
+        // tls: {
+        //     rejectUnauthorized: true,
+        //     minVersion: 'TLSv1.2',
         // }
-        tls: {
-            rejectUnauthorized: true,
-            minVersion: 'TLSv1.2',
-        }
+        ignoreTLS: true,
     }
 };
 const transporter = nodemailer.createTransport(config, {
-    from: `TEST <${process.env.EMAIL_AUTHOR}>`
+    from: `TEST <${process.env.MAIL_AUTHOR}>`
 });
 
 /**

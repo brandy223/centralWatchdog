@@ -7,6 +7,6 @@
  * @throws {Error} If the email is not valid
  * @throws {Error} If the email is not reachable
  */
-export async function sendEmail (email: string, message: string) : Promise<void> {
+export async function sendGlobalMessage (email: string, message: string) : Promise<void> {
     // TODO : need to keep created messages in db in order to delete them later if needed
 }
