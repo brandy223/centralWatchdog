@@ -1,13 +1,12 @@
 
 const events = require('events');
-const eventEmitter = new events.EventEmitter();
+export const eventEmitter = new events.EventEmitter();
 const dotenv = require('dotenv');
 dotenv.config();
 
 const Database = require('./utils/Database');
 const Network = require('./utils/Network');
 const Services = require('./utils/Services');
-const Message = require('./utils/Message');
 const Mail = require("./actions/SendEmail");
 const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
@@ -28,27 +27,32 @@ app.use(express.json());
 async function main(): Promise<void> {
     await Database.centralServerDatabaseInit();
 
-    // await Mail.sendEmail("1150@bonifay.fr", "Ceci est un test.");
+    // await Mail.sendEmail("brandy232@proton.me", 0,
+    //     {
+    //         server: {
+    //             id: 1,
+    //             ipAddr: "192.168.10.58"
+    //         }, status: "KO",
+    //         statusInfo: ["false", "0 out of 10"],
+    //     }
+    // );
 
     let jobsIds = (await Database.getAllJobs()).map((job: any) => job.id);
     cache.set("jobsIds", jobsIds);
     let serversIds = (await Database.getServersIdsOfJobs(jobsIds)).map((server: any) => server.serverId);
     let serversIpAddr = (await Database.getServersByIds(serversIds)).map((server: any) => server.ipAddr);
-    const test = serversIpAddr.filter((ipAddr: string) => ipAddr !== "192.168.10.58");
-    const corsOptions = {
-        // * WHITELIST
-        origin: serversIpAddr,
-        // origin: '192.168.10.58',
-        // origin: '*',
-        methods: ['GET', 'POST'],
-        optionsSuccessStatus: 200,
-        credentials: true
-    }
-
 
     const jobsInterval = setInterval(async () => {
         await updateJobsListInCache();
     }, Number(process.env.GLOBAL_REFRESH_PERIOD));
+
+    const corsOptions = {
+        // * WHITELIST
+        origin: serversIpAddr,
+        methods: ['GET', 'POST'],
+        optionsSuccessStatus: 200,
+        credentials: true
+    }
 
     const server = http.createServer(app);
     const io = new Server(server, {
@@ -58,29 +62,7 @@ async function main(): Promise<void> {
 
     const nodeServersMainSockets: Map<string, string> = new Map();
     const serverConnectionsCounter: Map<string, number> = new Map();
-
-    const checkOnServers = setInterval(async () => {
-       for (const serverIP of serversIpAddr) {
-           if (serverConnectionsCounter.get(serverIP) === 0 || serverConnectionsCounter.get(serverIP) === undefined) {
-               console.log(theme.warningBright("Server " + serverIP + " has 0 connections, trying to ping..."));
-               const isUp: string[] = await Network.ping(serverIP);
-               const status: string = isUp[0] ? "OK" : "KO";
-               if (!isUp[0]) console.log(theme.errorBright("Server " + serverIP + " is down!"));
-               else {
-                   isUp.push("Problem with NodeJS App probably");
-                   console.log(theme.warning("Server " + serverIP + " is up! But not sending any data..."));
-               }
-               const messageToSend = await Services.makeServerPingJSON(
-                   {
-                       "id": (await Database.getServerByIP(serverIP)).id,
-                       "ipAddr": serverIP,
-                   }, status, isUp
-               )
-               console.log(messageToSend);
-               eventEmitter.emit("server_not_connected_state", messageToSend);
-           }
-       }
-    }, Number(process.env.SERVERS_CHECK_PERIOD));
+    const checkOnServer = Services.serverConnectionsWatchdog(serverConnectionsCounter, serversIpAddr);
 
     io.on("error", () => {
         console.log(theme.error("Error"));

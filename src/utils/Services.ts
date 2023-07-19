@@ -1,4 +1,9 @@
 
+const Database = require("./Database");
+const Network = require("./Network");
+const theme = require("./ColorScheme").theme;
+const eventEmitter = require("../index").eventEmitter;
+
 const Template = require("../templates/DataTemplates");
 
 /**
@@ -18,4 +23,37 @@ export function makeServerPingJSON (server: any, status: string, pingInfo: strin
     if (server.ipAddr === undefined || server.ipAddr === null) throw new Error("Server does not have an ipAddr");
     if (pingInfo.length === 0) throw new Error("Ping info is empty");
     return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo).toJSON();
+}
+
+/**
+ * Watch for server connections and ping them if they have not try to connect for a while
+ * @param {Map<string, number>} serverConnectionsCounter The map that contains the number of connections for each server
+ * @param {string[]} serversIpAddr The list of servers IP addresses to watch
+ * @returns {NodeJS.Timeout} The interval
+ */
+export async function serverConnectionsWatchdog(serverConnectionsCounter: Map<string, number>, serversIpAddr: string[]): Promise<NodeJS.Timeout> {
+    return setInterval(async () => {
+        for (const serverIP of serversIpAddr) {
+            if (serverConnectionsCounter.get(serverIP) === 0 || serverConnectionsCounter.get(serverIP) === undefined) {
+                // TODO: Need to add timer there
+                console.log(theme.warningBright("Server " + serverIP + " has 0 connections, trying to ping..."));
+                const isUp: string[] = await Network.ping(serverIP);
+                const status: string = isUp[0] ? "OK" : "KO";
+                if (!isUp[0]) console.log(theme.errorBright("Server " + serverIP + " is down!"));
+                else {
+                    isUp.push("Problem with NodeJS App probably");
+                    console.log(theme.warning("Server " + serverIP + " is up! But not sending any data..."));
+                }
+                const messageToSend = await makeServerPingJSON(
+                    {
+                        "id": (await Database.getServerByIP(serverIP)).id,
+                        "ipAddr": serverIP,
+                    }, status, isUp
+                )
+                console.log(theme.bgDebug("Broadcasting message: "));
+                console.log(messageToSend);
+                eventEmitter.emit("server_not_connected_state", messageToSend);
+            }
+        }
+    }, Number(process.env.SERVERS_CHECK_PERIOD));
 }
