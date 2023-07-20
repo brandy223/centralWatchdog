@@ -5,9 +5,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const Database = require('./utils/Database');
-const Network = require('./utils/Network');
 const Services = require('./utils/Services');
-const Mail = require("./actions/SendEmail");
 const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
 
@@ -26,16 +24,6 @@ app.use(express.json());
 
 async function main(): Promise<void> {
     await Database.centralServerDatabaseInit();
-
-    // await Mail.main("brandy232@proton.me", 0,
-    //     {
-    //         server: {
-    //             id: 1,
-    //             ipAddr: "192.168.10.58"
-    //         }, status: "KO",
-    //         statusInfo: ["false", "0 out of 10"],
-    //     }
-    // );
 
     let serversIds: number[] = [];
     let serversIpAddr: string[] = [];
