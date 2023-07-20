@@ -1,6 +1,5 @@
 
 const validator = require('email-validator');
-
 const theme = require("../utils/ColorScheme").theme;
 const nodemailer = require('nodemailer');
 const config = {
@@ -16,19 +15,43 @@ const transporter = nodemailer.createTransport(config.mail, {
 });
 
 /**
- * Email someone
- * @param {string} email The email to send the message to
- * @param {number} typeOfMessage The type of message to send
-    * @param {any} data The data to send
+ * Email object
+ * @param {string} receiver The email receiver
+ * @param {string} subject The email subject
+ * @param {string} text The email text
+ * @param {string} html The email html
+ */
+interface Email {
+    receiver: string;
+    subject: string;
+    text: string;
+    html: string;
+}
+
+/**
+ * Main function to send an email
+ * @param {string} email
+ * @param {number} typeOfMessage
+ * @param {any} data
  * @returns {Promise<void>}
  * @throws {Error} If the email is not valid
- * @throws {Error} If the email is not reachable
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
-export async function sendEmail (email: string, typeOfMessage: number, data: any) : Promise<void> {
-
+export async function main(email: string, typeOfMessage: number, data: any): Promise<void> {
     if (!validator.validate(email)) throw new Error("Email is not valid");
+    const emailToSend = await emailConstructor(email, typeOfMessage, data);
+    await sendEmail(emailToSend);
+}
 
+/**
+ * Email constructor
+ * @param {string} email
+ * @param {number} typeOfMessage
+ * @param {any} data
+ * @returns {Promise<Email>}
+ * @throws {Error} If the type of message is not valid
+ */
+async function emailConstructor(email: string, typeOfMessage: number, data: any): Promise<Email> {
     let subject: string = "";
     let text: string = "";
     let html: string = "";
@@ -51,11 +74,26 @@ export async function sendEmail (email: string, typeOfMessage: number, data: any
             throw new Error("Type of message is not valid");
     }
 
-    const mail = {
-        to: email,
+    return {
+        receiver: email,
         subject: subject,
         text: text,
         html: html
+    }
+}
+
+/**
+ * Email someone
+ * @param {Email} email The email object
+ * @returns {Promise<void>}
+ * @throws {Error} If the email is not reachable
+ */
+async function sendEmail (email: Email) : Promise<void> {
+    const mail = {
+        to: email.receiver,
+        subject: email.subject,
+        text: email.text,
+        html: email.html
     };
 
     await transporter.sendMail(mail, (err: Error, info: any) => {
