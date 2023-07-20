@@ -98,6 +98,11 @@ async function main(): Promise<void> {
            nodeServersMainSockets.set(socket.id, ip);
         });
 
+        socket.on("test_connection", async (message: string) => {
+            socket.emit("test_connection_ack", "OK");
+            console.log(theme.debug("Test connection from " + connectServerIp + " : " + message));
+        });
+
         eventEmitter.on("server_not_connected_state", async (message: any) => {
             socket.to("main").emit("room_broadcast", message);
         });
@@ -108,7 +113,7 @@ async function main(): Promise<void> {
     });
 
     cache.on("set", async (key: string, value: any[]) => {
-       switch(key) {
+       switch(key) {        // * In case other keys are added
            case "jobsIds":
                jobsIds = value;
                serversIds = (await Database.getServersIdsOfJobs(jobsIds)).map((server: any) => server.serverId);
