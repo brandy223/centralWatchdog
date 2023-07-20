@@ -27,7 +27,7 @@ app.use(express.json());
 async function main(): Promise<void> {
     await Database.centralServerDatabaseInit();
 
-    // await Mail.sendEmail("brandy232@proton.me", 0,
+    // await Mail.main("brandy232@proton.me", 0,
     //     {
     //         server: {
     //             id: 1,
@@ -61,8 +61,8 @@ async function main(): Promise<void> {
     });
 
     const nodeServersMainSockets: Map<string, string> = new Map();
-    const serverConnectionsCounter: Map<string, number> = new Map();
-    const checkOnServer = Services.serverConnectionsWatchdog(serverConnectionsCounter, serversIpAddr);
+    const serverConnectionsInfo: Map<string, number[]> = new Map();
+    const checkOnServer = Services.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
 
     io.on("error", () => {
         console.log(theme.error("Error"));
@@ -70,13 +70,13 @@ async function main(): Promise<void> {
 
     io.on('connection', (socket: any) => {
         const connectServerIp = socket.request.connection.remoteAddress.substring(7);
-        serverConnectionsCounter.set(connectServerIp, (serverConnectionsCounter.get(connectServerIp) ?? 0) + 1);
+        serverConnectionsInfo.set(connectServerIp, [((Array.from(serverConnectionsInfo.get(connectServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
         console.log(theme.info("New connection " + socket.id + " from " + connectServerIp));
 
         socket.on("message", async (message: object) => {
             console.log(message);
             socket.to("main").emit("room_broadcast", message);
-            console.log(theme.info("Message's broadcasted"));
+            console.log(theme.info("Message's broadcast"));
 
             // Message Parsing
             // await Message.parseMessage(message);

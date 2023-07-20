@@ -27,16 +27,20 @@ export function makeServerPingJSON (server: any, status: string, pingInfo: strin
 
 /**
  * Watch for server connections and ping them if they have not try to connect for a while
- * @param {Map<string, number>} serverConnectionsCounter The map that contains the number of connections for each server
+ * @param {Map<string, number[]>} serverConnectionsInfo The map that contains the number of connections for each server
  * @param {string[]} serversIpAddr The list of servers IP addresses to watch
  * @returns {NodeJS.Timeout} The interval
  */
-export async function serverConnectionsWatchdog(serverConnectionsCounter: Map<string, number>, serversIpAddr: string[]): Promise<NodeJS.Timeout> {
+export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, number[]>, serversIpAddr: string[]): Promise<NodeJS.Timeout> {
     return setInterval(async () => {
         for (const serverIP of serversIpAddr) {
-            if (serverConnectionsCounter.get(serverIP) === 0 || serverConnectionsCounter.get(serverIP) === undefined) {
-                // TODO: Need to add timer there
-                console.log(theme.warningBright("Server " + serverIP + " has 0 connections, trying to ping..."));
+            const numberOfConnections = Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [0])[0];
+            if ((serverConnectionsInfo.get(serverIP) === undefined)
+                || (numberOfConnections === 0)
+                || (Math.abs((Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [Date.now()])[1]) - Date.now()) > Number(process.env.SERVERS_CHECK_PERIOD))) {
+
+                if (numberOfConnections === 0) console.log(theme.warningBright("Server " + serverIP + " has 0 connections, trying to ping..."));
+                else console.log(theme.warningBright("Server " + serverIP + " has not connected for a while, trying to ping..."));
                 const isUp: string[] = await Network.ping(serverIP);
                 const status: string = isUp[0] ? "OK" : "KO";
                 if (!isUp[0]) console.log(theme.errorBright("Server " + serverIP + " is down!"));
