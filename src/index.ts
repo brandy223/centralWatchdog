@@ -13,7 +13,7 @@ const theme = require('./utils/ColorScheme').theme;
 
 const express = require('express');
 const app = express();
-const http = require('http')
+const http = require('http');
 const { Server } = require("socket.io");
 const NodeCache = require("node-cache");
 const cache = new NodeCache({
@@ -37,10 +37,11 @@ async function main(): Promise<void> {
     //     }
     // );
 
+    let serversIds: number[] = [];
+    let serversIpAddr: string[] = [];
     let jobsIds = (await Database.getAllJobs()).map((job: any) => job.id);
-    cache.set("jobsIds", jobsIds);
-    let serversIds = (await Database.getServersIdsOfJobs(jobsIds)).map((server: any) => server.serverId);
-    let serversIpAddr = (await Database.getServersByIds(serversIds)).map((server: any) => server.ipAddr);
+    console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
+    cache.set("jobsIds", jobsIds, 60*60);
 
     const jobsInterval = setInterval(async () => {
         await updateJobsListInCache();
@@ -120,6 +121,15 @@ async function main(): Promise<void> {
                serversIpAddr = (await Database.getServersByIds(serversIds)).map((server: any) => server.ipAddr);
                break;
        }
+    });
+
+    cache.on("expired", async (key: string, value: any[]) => {
+        switch (key) {
+            case "jobsIds":
+                jobsIds = (await Database.getAllJobs()).map((job: any) => job.id);
+                cache.set("jobsIds", jobsIds, 60*60);
+                break;
+        }
     });
 }
 
