@@ -18,7 +18,7 @@ const app = express();
 const http = require('http');
 const { Server } = require("socket.io");
 const NodeCache = require("node-cache");
-const cache = new NodeCache({
+export const cache = new NodeCache({
     stdTTL: 30,
     checkperiod: 60,
     deleteOnExpire: true,
@@ -63,6 +63,9 @@ async function main(): Promise<void> {
     });
 
     io.on('connection', (socket: Socket): void => {
+        const serverNotConnectedListener = (message: any) => {
+            socket.to("main").emit("room_broadcast", message);
+        }
         socketListenersMap.set(socket, serverNotConnectedListener);
 
         const connectedServerIp: string = socket.handshake.address.substring(7);
@@ -102,16 +105,6 @@ async function main(): Promise<void> {
             console.log(theme.debug("Test connection from " + connectedServerIp + " : " + message));
         });
 
-        // eventEmitter.on("server_not_connected_state", async (message: object): Promise<void> => {
-        //     socket.to("main").emit("room_broadcast", message);
-        // });
-
-        // socketListenersMap.set(socket, eventEmitter.on("server_not_connected_state", async (message: object): Promise<void> => {
-        //     socket.to("main").emit("room_broadcast", message);
-        // }));
-        const serverNotConnectedListener = (message: any) => {
-            socket.to("main").emit("room_broadcast", message);
-        }
         eventEmitter.on("server_not_connected_state", serverNotConnectedListener);
     });
 
