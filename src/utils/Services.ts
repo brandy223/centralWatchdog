@@ -30,7 +30,7 @@ export function makeServerPingJSON (server: Servers, status: string, pingInfo: s
  */
 export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, number[]>, serversIpAddr: string[]): Promise<NodeJS.Timeout> {
     return setInterval(async (): Promise<void> => {
-        for (const serverIP: string of serversIpAddr) {
+        for (const serverIP of serversIpAddr) {
             const numberOfConnections: number = Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [0])[0];
             if ((serverConnectionsInfo.get(serverIP) === undefined)
                 || (numberOfConnections === 0)

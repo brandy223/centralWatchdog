@@ -46,7 +46,7 @@ export function extractPingInfo (pingOutput: string) : string[] {
 export async function pingServers (ipList: string[]) : Promise<string[]> {
     if (ipList === undefined || ipList === null) throw new Error("IP List is null or undefined");
     const reachableIPList: string[] = [];
-    for (const ip: string of ipList) {
+    for (const ip of ipList) {
         if (await ping(ip)) reachableIPList.push(ip);
     }
     return reachableIPList;
