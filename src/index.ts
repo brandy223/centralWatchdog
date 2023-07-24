@@ -1,3 +1,4 @@
+import {ChannelListener} from "diagnostics_channel";
 
 const events = require('events');
 export const eventEmitter = new events.EventEmitter();
@@ -10,6 +11,7 @@ const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
 
 import { Jobs, Servers, ServersOfJobs } from "@prisma/client";
+import {Socket} from "socket.io";
 
 const express = require('express');
 const app = express();
@@ -54,15 +56,18 @@ async function main(): Promise<void> {
     const nodeServersMainSockets: Map<string, string> = new Map();
     const serverConnectionsInfo: Map<string, number[]> = new Map();
     const checkOnServer = Services.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
+    const socketListenersMap: Map<Socket, (data: any) => void> = new Map();
 
     io.on("error", () => {
         console.log(theme.error("Error"));
     });
 
-    io.on('connection', (socket: any) => {
-        const connectServerIp: string = socket.request.connection.remoteAddress.substring(7);
-        serverConnectionsInfo.set(connectServerIp, [((Array.from(serverConnectionsInfo.get(connectServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
-        console.log(theme.info("New connection " + socket.id + " from " + connectServerIp));
+    io.on('connection', (socket: Socket): void => {
+        socketListenersMap.set(socket, serverNotConnectedListener);
+
+        const connectedServerIp: string = socket.handshake.address.substring(7);
+        serverConnectionsInfo.set(connectedServerIp, [((Array.from(serverConnectionsInfo.get(connectedServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
+        console.log(theme.info("New connection " + socket.id + " from " + connectedServerIp));
 
         socket.on("message", async (message: object): Promise<void> => {
             console.log(message);
@@ -79,6 +84,9 @@ async function main(): Promise<void> {
                 nodeServersMainSockets.delete(socket.id);
             }
             else console.log(theme.warning("Client " + socket.id + " disconnected"));
+
+            eventEmitter.off("server_not_connected_state", socketListenersMap.get(socket));
+            socketListenersMap.delete(socket);
         });
 
         socket.on("main_connection", async (ip: string): Promise<void> => {
@@ -91,12 +99,20 @@ async function main(): Promise<void> {
 
         socket.on("test_connection", async (message: string): Promise<void> => {
             socket.emit("test_connection_ack", "OK");
-            console.log(theme.debug("Test connection from " + connectServerIp + " : " + message));
+            console.log(theme.debug("Test connection from " + connectedServerIp + " : " + message));
         });
 
-        eventEmitter.on("server_not_connected_state", async (message: object): Promise<void> => {
+        // eventEmitter.on("server_not_connected_state", async (message: object): Promise<void> => {
+        //     socket.to("main").emit("room_broadcast", message);
+        // });
+
+        // socketListenersMap.set(socket, eventEmitter.on("server_not_connected_state", async (message: object): Promise<void> => {
+        //     socket.to("main").emit("room_broadcast", message);
+        // }));
+        const serverNotConnectedListener = (message: any) => {
             socket.to("main").emit("room_broadcast", message);
-        });
+        }
+        eventEmitter.on("server_not_connected_state", serverNotConnectedListener);
     });
 
     server.listen(process.env.SERVER_PORT, (): void => {
