@@ -22,7 +22,6 @@ export async function isServerInDatabase (ip: string) : Promise<boolean> {
  * Check if the server is the central server
  * @param {string} ip The ip of the server
  * @returns {Promise<boolean>} True if the server is the central server, false otherwise
- * @throws {Error} If the server is not in the database
  */
 export async function isServerCentral (ip: string) : Promise<boolean> {
     return (await getServerByIP(ip)).type === "Central";
@@ -48,8 +47,6 @@ export async function isThereAnotherCentralServer (ip: string) : Promise<boolean
  * Check if the port is set
  * @param {string} ip
  * @returns {Promise<boolean>} True if the port is set, false otherwise
- * @throws {Error} If the server is not in the database
- * @throws {Error} If the server is not the central server
  */
 export async function isPortSet (ip: string) : Promise<boolean> {
     return (await getServerByIP(ip)).port !== null;
@@ -59,8 +56,6 @@ export async function isPortSet (ip: string) : Promise<boolean> {
  * Check if the server priority is set
  * @param {string} ip The ip of the server
  * @returns {Promise<boolean>} True if the server priority is set, false otherwise
- * @throws {Error} If the server is not in the database
- * @throws {Error} If the server is not the central server
  */
 export async function isServerPrioritySet (ip: string) : Promise<boolean> {
     return (await getServerByIP(ip)).priority !== null;
@@ -69,7 +64,7 @@ export async function isServerPrioritySet (ip: string) : Promise<boolean> {
 /**
  * Get server by ip
  * @param {string} ip The ip of the server
- * @returns {Promise<*>} The server
+ * @returns {Promise<Servers>} The server
  */
 export async function getServerByIP (ip: string) : Promise<Servers> {
     return prisma.servers.findUnique({where: {ipAddr: ip}});
@@ -78,7 +73,7 @@ export async function getServerByIP (ip: string) : Promise<Servers> {
 /**
  * Get servers by type
  * @param {string} type The type of the server (Central or Node)
- * @returns {Promise<*>} Array of node servers
+ * @returns {Promise<Servers[]>} Array of node servers
  */
 export async function getServerByType (type: string) : Promise<Servers[]> {
     return prisma.servers.findMany({ where: {type: type}});
@@ -87,7 +82,7 @@ export async function getServerByType (type: string) : Promise<Servers[]> {
 /**
  * Get server by id
  * @param {number} id The id of the server
- * @returns {Promise<*>} The server
+ * @returns {Promise<Servers>} The server
  */
 export async function getServerById (id: number) : Promise<Servers> {
     return prisma.servers.findUnique({where: {id: id}});
@@ -96,7 +91,7 @@ export async function getServerById (id: number) : Promise<Servers> {
 /**
  * Get job by id
  * @param {number} id The id of the job
- * @returns {Promise<*>} The job
+ * @returns {Promise<Jobs>} The job
  */
 export async function getJobById (id: number) : Promise<Jobs> {
     return prisma.jobs.findUnique({where: {id: id}});
@@ -104,7 +99,7 @@ export async function getJobById (id: number) : Promise<Jobs> {
 
 /** Get state value by id
  * @param {number} id The id of the state value
- * @returns {Promise<*>} The state value
+ * @returns {Promise<StateValues>} The state value
  */
 export async function getStateValueById (id: number) : Promise<StateValues> {
     return prisma.stateValues.findUnique({where: {id: id}});
@@ -112,7 +107,7 @@ export async function getStateValueById (id: number) : Promise<StateValues> {
 
 /**
  * Get all jobs
- * @returns {Promise<*>} Array of jobs
+ * @returns {Promise<Jobs[]>} Array of jobs
  */
 export async function getAllJobs () : Promise<Jobs[]> {
     return prisma.jobs.findMany();
@@ -121,7 +116,7 @@ export async function getAllJobs () : Promise<Jobs[]> {
 /**
  * Get servers by ids
  * @param {number[]} ids The ids of the servers
- * @returns {Promise<*>} Array of servers
+ * @returns {Promise<Servers[]>} Array of servers
  * @throws {Error} If ids is empty
  */
 export async function getServersByIds (ids: number[]) : Promise<Servers[]> {
@@ -132,7 +127,7 @@ export async function getServersByIds (ids: number[]) : Promise<Servers[]> {
 /**
  * Get servers ids of jobs
  * @param {number[]} ids The ids of the jobs
- * @returns {Promise<*>} Array of servers ids
+ * @returns {Promise<ServersOfJobs[]>} Array of servers ids
  * @throws {Error} If ids is empty
  */
 export async function getServersIdsOfJobs (ids: number[]) : Promise<ServersOfJobs[]> {
@@ -192,7 +187,7 @@ export async function updateServer (ip: string, type: string, port: number, prio
 /**
  * Get all the state values of a server
  * @param {number} id The id of the server
- * @returns {Promise<*>} The state values of the server
+ * @returns {Promise<StateValues[]>} The state values of the server
  * @throws {Error} If the server is not in the database
  */
 export async function getServerStateValues (id: number) : Promise<StateValues[]> {
@@ -203,7 +198,7 @@ export async function getServerStateValues (id: number) : Promise<StateValues[]>
 /**
  * Get all the state values of a job
  * @param {number} id The id of the job
- * @returns {Promise<*>} The state values of the job
+ * @returns {Promise<StateValues[]>} The state values of the job
  * @throws {Error} If the job is not in the database
  */
 export async function getJobStateValues (id: number) : Promise<StateValues[]> {
@@ -214,7 +209,7 @@ if ((await getJobById(id)) === undefined) throw new Error("Job is not in databas
 /**
  * Get scenario by id
  * @param {number} id The id of the scenario
- * @returns {Promise<*>} The scenario
+ * @returns {Promise<Scenarios>} The scenario
  */
 export async function getScenarioById (id: number) : Promise<Scenarios> {
     return prisma.scenarios.findUnique({where: {id: id}});
@@ -223,7 +218,7 @@ export async function getScenarioById (id: number) : Promise<Scenarios> {
 /**
  * Get actions of a scenario
  * @param {number} id The id of the scenario
- * @returns {Promise<*>} The actions of the scenario
+ * @returns {Promise<ActionsOfScenarios[]>} The actions of the scenario
  * @throws {Error} If the scenario is not in the database
  */
 export async function getScenarioActionsIds (id: number) : Promise<ActionsOfScenarios[]> {
@@ -234,7 +229,7 @@ export async function getScenarioActionsIds (id: number) : Promise<ActionsOfScen
 /**
  * get actions by ids
  * @param {number[]} ids The ids of the actions to get
- * @returns {Promise<*>} The actions
+ * @returns {Promise<Actions[]>} The actions
  */
 export async function getActionsByIds (ids: number[]) : Promise<Actions[]> {
     return prisma.actions.findMany({where: {id: {in: ids}}});

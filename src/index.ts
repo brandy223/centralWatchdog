@@ -125,6 +125,10 @@ async function main(): Promise<void> {
 
 main();
 
+/**
+ * Update the jobs list in cache
+ * @returns {Promise<void>}
+ */
 async function updateJobsListInCache(): Promise<void> {
     const jobsIds: number[] = (await Database.getAllJobs()).map((job: Jobs) => job.id);
     if (cache.get("jobsIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("jobsIds"), jobsIds))) return;

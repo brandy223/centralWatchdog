@@ -44,9 +44,9 @@ export class ServiceTestTemplate {
     service: Service;
     server: Server;
     job: Job;
-    status: string;
+    status: string[];
 
-    constructor(serviceId: number, serviceName: string, serverId: number, ip: string, jobId: number, status: string) {
+    constructor(serviceId: number, serviceName: string, serverId: number, ip: string, jobId: number, status: string[]) {
         this.messageType = 2;
         this.service = { id: serviceId, name: serviceName };
         this.server = { id: serverId, ip };

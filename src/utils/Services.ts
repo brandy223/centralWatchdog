@@ -10,14 +10,14 @@ const Template = require("../templates/DataTemplates");
 
 /**
  * Make a JSON object that contains the id of the server, its IP address and its status
- * @param {any} server The server object
+ * @param {Servers} server The server object
  * @param {string} status The status of the server
  * @param {string[]} pingInfo Information about the ping
- * @returns {any} The JSON object
+ * @returns {JSON} The JSON object
  * @throws {Error} If the pingInfo is empty
  * @throws {Error} If the server is not found in the database
  */
-export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[]) : any {
+export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[]): JSON {
     if (pingInfo.length === 0) throw new Error("Ping info is empty");
     return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo).toJSON();
 }
