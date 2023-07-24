@@ -33,8 +33,8 @@ async function main(): Promise<void> {
     console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
     cache.set("jobsIds", jobsIds, 60*60);
 
-    const jobsInterval = setInterval(async (): Promise<void> => {
-        await updateJobsListInCache();
+    const jobsInterval = setInterval((): void => {
+        updateJobsListInCache();
     }, Number(process.env.GLOBAL_REFRESH_PERIOD));
 
     const corsOptions = {
