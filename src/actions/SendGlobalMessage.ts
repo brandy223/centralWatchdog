@@ -27,9 +27,9 @@ export async function sendGlobalMessage (email: string, message: string) : Promi
  * @returns {Promise<void>}
  * @throws {Error} If an error occurred while creating the message
  */
-async function createMessage(messageContent: string) {
-    const today = new Date();
-    const messageEndDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+async function createMessage(messageContent: string): Promise<void> {
+    const today: Date = new Date();
+    const messageEndDate: Date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     console.log(today.getTime());
     connection.query("INSERT INTO m_apicash_message (mess_content, mess_begin, mess_end, USR_0) VALUES (?, ?, ?, ?)", [messageContent, today.getTime() / 1000, messageEndDate.getTime() / 1000, ""], (err: any, result: any) => {
         if (err) throw err;
@@ -44,7 +44,7 @@ async function createMessage(messageContent: string) {
  * @returns {Promise<void>}
  * @throws {Error} If an error occurred while updating the message content
  */
-async function updateMessageContent(messageId: number, messageContent: string) {
+async function updateMessageContent(messageId: number, messageContent: string): Promise<void> {
     connection.query("UPDATE m_apicash_message SET mess_content = ? WHERE mes_id = ?", [messageContent, messageId], (err: any, result: any) => {
         if (err) throw err;
         console.log(theme.success("Message content updated successfully : " + result.toString()));
@@ -58,7 +58,7 @@ async function updateMessageContent(messageId: number, messageContent: string) {
  * @returns {Promise<void>}
  * @throws {Error} If an error occurred while updating the message end date
  */
-async function updateMessageEndDate(messageId: number, messageEndDate: Date) {
+async function updateMessageEndDate(messageId: number, messageEndDate: Date): Promise<void> {
     connection.query("UPDATE m_apicash_message SET mess_end = ? WHERE mes_id = ?", [messageEndDate.getTime() / 1000, messageId], (err: any, result: any) => {
         if (err) throw err;
         console.log(theme.success("Message end date updated successfully : " + result.toString()));
@@ -70,8 +70,8 @@ async function updateMessageEndDate(messageId: number, messageEndDate: Date) {
  * @param {number} messageId The id of the message to delete
  * @returns {Promise<void>}
  */
-async function deleteMessage(messageId: number) {
-    connection.query("DELETE FROM m_apicash_message WHERE mes_id = ?", [messageId], (err: any, result: any) => {
+async function deleteMessage(messageId: number): Promise<void> {
+    connection.query("DELETE FROM m_apicash_message WHERE mes_id = ?", [messageId], (err: any, result: any): void => {
         if (err) throw err;
         console.log(theme.success("Message deleted successfully : " + result.toString()));
     });
@@ -83,8 +83,8 @@ async function deleteMessage(messageId: number) {
  * @returns {Promise<any>}
  * @throws {Error} If an error occurred while getting the message
  */
-async function getMessage(messageId: number) {
-    return new Promise((resolve, reject) => {
+async function getMessage(messageId: number): Promise<unknown> {
+    return new Promise((resolve, reject): void => {
         connection.query("SELECT * FROM m_apicash_message WHERE mes_id = ?", [messageId], (err: any, result: any) => {
             if (err) reject(err);
             console.log(theme.success("Message retrieved successfully : " + result.toString()));

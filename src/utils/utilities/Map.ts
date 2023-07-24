@@ -8,7 +8,7 @@
 export function getHighestPriorityStateValue(map: Map<number, [boolean, number]>): number {
     if (map.size === 0) throw new Error("Map is empty");
     let highestPriority: number = 0;
-    let highestPriorityKey = -1;
+    let highestPriorityKey: number = -1;
     for (const [key, [boolean, priority]] of map.entries()) {
         if (boolean && priority > highestPriority) {
             highestPriority = priority;

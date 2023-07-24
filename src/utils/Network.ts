@@ -22,7 +22,7 @@ export async function getLocalIP () : Promise<string> {
 export async function ping (ip: string) : Promise<string[]> {
     const ping = require('ping');
     const res = await ping.promise.probe(ip, pingConfig);
-    const output = extractPingInfo(res.output);
+    const output: string[] = extractPingInfo(res.output);
     output.unshift(res.alive.toString());
     return output;
 }
@@ -34,7 +34,7 @@ export async function ping (ip: string) : Promise<string[]> {
  */
 export function extractPingInfo (pingOutput: string) : string[] {
     const temp: string[] = pingOutput.trim().split("\n");
-    return temp[temp.length - 2].split(",").map(part => part.trim());
+    return temp[temp.length - 2].split(",").map((part: string) => part.trim());
 }
 
 /**
@@ -45,8 +45,8 @@ export function extractPingInfo (pingOutput: string) : string[] {
  */
 export async function pingServers (ipList: string[]) : Promise<string[]> {
     if (ipList === undefined || ipList === null) throw new Error("IP List is null or undefined");
-    const reachableIPList = [];
-    for (const ip of ipList) {
+    const reachableIPList: string[] = [];
+    for (const ip: string of ipList) {
         if (await ping(ip)) reachableIPList.push(ip);
     }
     return reachableIPList;

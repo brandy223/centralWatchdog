@@ -22,7 +22,7 @@ export async function getUniqueValuesFromArray(array: any[]): Promise<any[]> {
 export async function compareArrays(a: any[], b: any[]): Promise<boolean> {
     if (a.length === 0 || b.length === 0) throw new Error("No arrays given");
     if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
+    for (let i: number = 0; i < a.length; i++) {
         const objA = a[i];
         const objB = b[i];
         if (JSON.stringify(objA) !== JSON.stringify(objB)) return false;

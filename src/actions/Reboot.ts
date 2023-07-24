@@ -1,3 +1,4 @@
+import {ChildProcessWithoutNullStreams} from "child_process";
 
 const { spawn } = require("node:child_process");
 const theme = require('../utils/ColorScheme').theme;
@@ -10,9 +11,9 @@ const theme = require('../utils/ColorScheme').theme;
  * @throws {Error} If the server is not reachable
  */
 export async function reboot(ip: number, user: string): Promise<void> {
-    const arg1 = `${user}@${ip}`;
-    const arg2 = "sudo reboot";
-    const conn = spawn("ssh", [arg1, arg2]);
+    const arg1: string = `${user}@${ip}`;
+    const arg2: string = "sudo reboot";
+    const conn: ChildProcessWithoutNullStreams = spawn("ssh", [arg1, arg2]);
 
     conn.stdout.on("data", (data: any): void => {
         console.log(theme.debugBright("Data from ssh connexion : " + data.toString()));

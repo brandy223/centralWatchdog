@@ -14,7 +14,7 @@ datasource db {
 model Services {
   id      Int                  @id @default(autoincrement())
   name    String               @db.VarChar(255)
-  portNo  Int?                 @db.MediumInt
+  port    Int?                 @db.MediumInt
   timeout Int                  @default(5000) @db.MediumInt
   servers ServicesOfServers[]
   objects ServicesAndObjects[]

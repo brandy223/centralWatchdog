@@ -1,3 +1,4 @@
+import {AxiosResponse} from "axios";
 
 const axios = require('axios');
 
@@ -8,12 +9,12 @@ const axios = require('axios');
  * @throws {Error} If the person ID does not exist
  */
 export async function isPersonFree (id: number) : Promise<boolean> {
-    const today = new Date();
-    const day = today.getDate();
-    const month = today.getMonth() + 1;
-    const year = today.getFullYear();
-    let apiUrl = `http://manager.reseau.lan/index.php/checkDispoUserByDate?date-debut=${month}/${day}/${year}&id=${id}`
-    const res = await axios.get(apiUrl);
+    const today: Date = new Date();
+    const day: number = today.getDate();
+    const month: number = today.getMonth() + 1;
+    const year: number = today.getFullYear();
+    let apiUrl: string = `http://manager.reseau.lan/index.php/checkDispoUserByDate?date-debut=${month}/${day}/${year}&id=${id}`
+    const res: AxiosResponse<any> = await axios.get(apiUrl);
 
     if (JSON.stringify(res.data).includes("undefined")) throw new Error("Person ID does not exist");
     return !JSON.stringify(res.data).includes("Absent");

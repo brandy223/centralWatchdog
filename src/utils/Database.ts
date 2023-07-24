@@ -1,5 +1,6 @@
 
 const { PrismaClient } = require('@prisma/client');
+import {Servers, Jobs, StateValues, ServersOfJobs, Scenarios, ActionsOfScenarios, Actions} from "@prisma/client";
 const Network = require('./Network');
 
 const prisma = new PrismaClient(
@@ -14,8 +15,7 @@ const prisma = new PrismaClient(
  * @returns {Promise<boolean>} True if the server exists in the database, false otherwise
  */
 export async function isServerInDatabase (ip: string) : Promise<boolean> {
-    const server = await prisma.servers.findUnique({ where: { ipAddr: ip } });
-    return server !== undefined && server !== null;
+    return (await getServerByIP(ip)) !== undefined;
 }
 
 /**
@@ -25,9 +25,7 @@ export async function isServerInDatabase (ip: string) : Promise<boolean> {
  * @throws {Error} If the server is not in the database
  */
 export async function isServerCentral (ip: string) : Promise<boolean> {
-    const server = await prisma.servers.findUnique({ where: { ipAddr: ip } });
-    if (server === null) throw new Error("Server is not in database");
-    return server?.type === "Central";
+    return (await getServerByIP(ip)).type === "Central";
 }
 
 /**
@@ -36,15 +34,14 @@ export async function isServerCentral (ip: string) : Promise<boolean> {
  * @returns {Promise<boolean>} True if there is another central server in the database, false otherwise
  */
 export async function isThereAnotherCentralServer (ip: string) : Promise<boolean> {
-    const centralServers = await prisma.servers.findMany({
+    return (await prisma.servers.findMany({
         where: {
             type: "Central",
             ipAddr: {
                 not: ip
             }
         }
-    });
-    return centralServers.length > 0;
+    })).length > 0;
 }
 
 /**
@@ -55,10 +52,7 @@ export async function isThereAnotherCentralServer (ip: string) : Promise<boolean
  * @throws {Error} If the server is not the central server
  */
 export async function isPortSet (ip: string) : Promise<boolean> {
-    if (!await isServerInDatabase(ip)) throw new Error("Server is not in database");
-    if (!await isServerCentral(ip)) throw new Error("Server is not the central server");
-    const server = await prisma.servers.findUnique({ where: { ipAddr: ip } });
-    return server?.port !== null;
+    return (await getServerByIP(ip)).port !== null;
 }
 
 /**
@@ -69,10 +63,7 @@ export async function isPortSet (ip: string) : Promise<boolean> {
  * @throws {Error} If the server is not the central server
  */
 export async function isServerPrioritySet (ip: string) : Promise<boolean> {
-    if (!await isServerInDatabase(ip)) throw new Error("Server is not in database");
-    if (!await isServerCentral(ip)) throw new Error("Server is not the central server");
-    const server = await prisma.servers.findUnique({ where: { ipAddr: ip } });
-    return server?.priority !== null;
+    return (await getServerByIP(ip)).priority !== null;
 }
 
 /**
@@ -80,7 +71,7 @@ export async function isServerPrioritySet (ip: string) : Promise<boolean> {
  * @param {string} ip The ip of the server
  * @returns {Promise<*>} The server
  */
-export async function getServerByIP (ip: string) : Promise<any> {
+export async function getServerByIP (ip: string) : Promise<Servers> {
     return prisma.servers.findUnique({where: {ipAddr: ip}});
 }
 
@@ -89,8 +80,8 @@ export async function getServerByIP (ip: string) : Promise<any> {
  * @param {string} type The type of the server (Central or Node)
  * @returns {Promise<*>} Array of node servers
  */
-export async function getServerByType (type: string) : Promise<any> {
-    return prisma.servers.findMany({where: {type: type}});
+export async function getServerByType (type: string) : Promise<Servers[]> {
+    return prisma.servers.findMany({ where: {type: type}});
 }
 
 /**
@@ -98,7 +89,7 @@ export async function getServerByType (type: string) : Promise<any> {
  * @param {number} id The id of the server
  * @returns {Promise<*>} The server
  */
-export async function getServerById (id: number) : Promise<any> {
+export async function getServerById (id: number) : Promise<Servers> {
     return prisma.servers.findUnique({where: {id: id}});
 }
 
@@ -107,7 +98,7 @@ export async function getServerById (id: number) : Promise<any> {
  * @param {number} id The id of the job
  * @returns {Promise<*>} The job
  */
-export async function getJobById (id: number) : Promise<any> {
+export async function getJobById (id: number) : Promise<Jobs> {
     return prisma.jobs.findUnique({where: {id: id}});
 }
 
@@ -115,7 +106,7 @@ export async function getJobById (id: number) : Promise<any> {
  * @param {number} id The id of the state value
  * @returns {Promise<*>} The state value
  */
-export async function getStateValueById (id: number) : Promise<any> {
+export async function getStateValueById (id: number) : Promise<StateValues> {
     return prisma.stateValues.findUnique({where: {id: id}});
 }
 
@@ -123,7 +114,7 @@ export async function getStateValueById (id: number) : Promise<any> {
  * Get all jobs
  * @returns {Promise<*>} Array of jobs
  */
-export async function getAllJobs () : Promise<any> {
+export async function getAllJobs () : Promise<Jobs[]> {
     return prisma.jobs.findMany();
 }
 
@@ -133,7 +124,7 @@ export async function getAllJobs () : Promise<any> {
  * @returns {Promise<*>} Array of servers
  * @throws {Error} If ids is empty
  */
-export async function getServersByIds (ids: number[]) : Promise<any> {
+export async function getServersByIds (ids: number[]) : Promise<Servers[]> {
     if (ids.length === 0) throw new Error("Ids is empty");
     return prisma.servers.findMany({where: {id: {in: ids}}});
 }
@@ -144,7 +135,7 @@ export async function getServersByIds (ids: number[]) : Promise<any> {
  * @returns {Promise<*>} Array of servers ids
  * @throws {Error} If ids is empty
  */
-export async function getServersIdsOfJobs (ids: number[]) : Promise<any> {
+export async function getServersIdsOfJobs (ids: number[]) : Promise<ServersOfJobs[]> {
     if (ids.length === 0) throw new Error("Ids is empty");
     return prisma.serversOfJobs.findMany({
         where: {
@@ -204,7 +195,7 @@ export async function updateServer (ip: string, type: string, port: number, prio
  * @returns {Promise<*>} The state values of the server
  * @throws {Error} If the server is not in the database
  */
-export async function getServerStateValues (id: number) : Promise<any> {
+export async function getServerStateValues (id: number) : Promise<StateValues[]> {
     if ((await getServerById(id)) === undefined) throw new Error("Server is not in database");
     return prisma.stateValues.findMany({where: {serverId: id}});
 }
@@ -215,7 +206,7 @@ export async function getServerStateValues (id: number) : Promise<any> {
  * @returns {Promise<*>} The state values of the job
  * @throws {Error} If the job is not in the database
  */
-export async function getJobStateValues (id: number) : Promise<any[]> {
+export async function getJobStateValues (id: number) : Promise<StateValues[]> {
 if ((await getJobById(id)) === undefined) throw new Error("Job is not in database");
     return prisma.stateValues.findMany({where: {jobId: id}});
 }
@@ -225,7 +216,7 @@ if ((await getJobById(id)) === undefined) throw new Error("Job is not in databas
  * @param {number} id The id of the scenario
  * @returns {Promise<*>} The scenario
  */
-export async function getScenarioById (id: number) : Promise<any> {
+export async function getScenarioById (id: number) : Promise<Scenarios> {
     return prisma.scenarios.findUnique({where: {id: id}});
 }
 
@@ -235,7 +226,7 @@ export async function getScenarioById (id: number) : Promise<any> {
  * @returns {Promise<*>} The actions of the scenario
  * @throws {Error} If the scenario is not in the database
  */
-export async function getScenarioActionsIds (id: number) : Promise<any> {
+export async function getScenarioActionsIds (id: number) : Promise<ActionsOfScenarios[]> {
     if ((await getScenarioById(id)) === undefined) throw new Error("Scenario is not in database");
     return prisma.actionsOfScenarios.findMany({ where: {scenarioId: id}});
 }
@@ -245,7 +236,7 @@ export async function getScenarioActionsIds (id: number) : Promise<any> {
  * @param {number[]} ids The ids of the actions to get
  * @returns {Promise<*>} The actions
  */
-export async function getActionsByIds (ids: number[]) : Promise<any> {
+export async function getActionsByIds (ids: number[]) : Promise<Actions[]> {
     return prisma.actions.findMany({where: {id: {in: ids}}});
 }
 
@@ -253,13 +244,11 @@ export async function getActionsByIds (ids: number[]) : Promise<any> {
  * Initialize the central server in database
  */
 export async function centralServerDatabaseInit(): Promise<void> {
-    let serverPriority = 1;
+    let serverPriority: number = 1;
 
     // GET LOCAL IP
-    const ip = await Network.getLocalIP();
-    if (ip === undefined) throw new Error("Could not get local IP");
-    else
-        console.log(`Local IP: ${ip}`);
+    const ip: string = await Network.getLocalIP();
+    console.log(`Local IP: ${ip}`);
 
     // VERIFY IF ANOTHER CENTRAL SERVER EXISTS IN DATABASE
     if (await isThereAnotherCentralServer(ip)) {
@@ -281,7 +270,7 @@ export async function centralServerDatabaseInit(): Promise<void> {
     }
 
     // IF SERVERS INFORMATION ARE CORRECT
-    const server = await getServerByIP(ip);
+    const server: Servers = await getServerByIP(ip);
     if (await isPortSet(ip)) {
         if (server?.port !== Number(process.env.SERVER_PORT)) {
             await updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);

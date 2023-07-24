@@ -4,6 +4,8 @@ const Network = require("./Network");
 const theme = require("./ColorScheme").theme;
 const eventEmitter = require("../index").eventEmitter;
 
+import { Servers } from "@prisma/client";
+
 const Template = require("../templates/DataTemplates");
 
 /**
@@ -12,15 +14,10 @@ const Template = require("../templates/DataTemplates");
  * @param {string} status The status of the server
  * @param {string[]} pingInfo Information about the ping
  * @returns {any} The JSON object
- * @throws {Error} If the server is null or undefined
- * @throws {Error} If the server does not have an id
- * @throws {Error} If the server does not have an ipAddr
  * @throws {Error} If the pingInfo is empty
+ * @throws {Error} If the server is not found in the database
  */
-export function makeServerPingJSON (server: any, status: string, pingInfo: string[]) : any {
-    if (server === undefined || server === null) throw new Error("Server is null or undefined");
-    if (server.id === undefined || server.id === null) throw new Error("Server does not have an id");
-    if (server.ipAddr === undefined || server.ipAddr === null) throw new Error("Server does not have an ipAddr");
+export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[]) : any {
     if (pingInfo.length === 0) throw new Error("Ping info is empty");
     return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo).toJSON();
 }
@@ -32,9 +29,9 @@ export function makeServerPingJSON (server: any, status: string, pingInfo: strin
  * @returns {NodeJS.Timeout} The interval
  */
 export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, number[]>, serversIpAddr: string[]): Promise<NodeJS.Timeout> {
-    return setInterval(async () => {
-        for (const serverIP of serversIpAddr) {
-            const numberOfConnections = Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [0])[0];
+    return setInterval(async (): Promise<void> => {
+        for (const serverIP: string of serversIpAddr) {
+            const numberOfConnections: number = Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [0])[0];
             if ((serverConnectionsInfo.get(serverIP) === undefined)
                 || (numberOfConnections === 0)
                 || (Math.abs((Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [Date.now()])[1]) - Date.now()) > Number(process.env.SERVERS_CHECK_PERIOD))) {
@@ -48,10 +45,15 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
                     isUp.push("Problem with NodeJS App probably");
                     console.log(theme.warning("Server " + serverIP + " is up! But not sending any data..."));
                 }
+                const server: Servers = await Database.getServerByIP(serverIP);
+                if (server === undefined) throw new Error("Server not found in database");
                 const messageToSend = await makeServerPingJSON(
                     {
-                        "id": (await Database.getServerByIP(serverIP)).id,
-                        "ipAddr": serverIP,
+                        "id": server.id,
+                        "ipAddr": server.ipAddr,
+                        "type": server.type,
+                        "port": server.port,
+                        "priority": server.priority
                     }, status, isUp
                 )
                 console.log(theme.bgDebug("Broadcasting message: "));
