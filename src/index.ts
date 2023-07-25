@@ -1,4 +1,3 @@
-import {ChannelListener} from "diagnostics_channel";
 
 const events = require('events');
 export const eventEmitter = new events.EventEmitter();
@@ -6,11 +5,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const Database = require('./utils/Database');
-const Services = require('./utils/Services');
+const ServicesUtils = require('./utils/Services');
 const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
 
-import { Jobs, Servers, ServersOfJobs } from "@prisma/client";
+import { Jobs, Servers, ServersOfJobs, Services } from "@prisma/client";
 import {Socket} from "socket.io";
 
 const express = require('express');
@@ -29,9 +28,14 @@ app.use(express.json());
 async function main(): Promise<void> {
     await Database.centralServerDatabaseInit();
 
-    let serversIds: number[] = [];
-    let serversIpAddr: string[] = [];
+    // const gm  = require("./actions/SendGlobalMessage")
+    // const test: Services[] = await Database.getServicesByIds([1]);
+    // console.log(test);
+    // await gm.sendGlobalMessage(test[0], 1, "test");
+
     let jobsIds: number[] = (await Database.getAllJobs()).map((job: Jobs) => job.id);
+    let serversIds: number[] = (await Database.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
+    let serversIpAddr: string[] = (await Database.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
     console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
     cache.set("jobsIds", jobsIds, 60*60);
 
@@ -55,7 +59,7 @@ async function main(): Promise<void> {
 
     const nodeServersMainSockets: Map<string, string> = new Map();
     const serverConnectionsInfo: Map<string, number[]> = new Map();
-    const checkOnServer = Services.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
+    let checkOnServer = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
     const socketListenersMap: Map<Socket, (data: any) => void> = new Map();
 
     io.on("error", () => {
@@ -115,9 +119,11 @@ async function main(): Promise<void> {
     cache.on("set", async (key: string, value: (number | string)[]): Promise<void> => {
        switch(key) {        // * In case other keys are added
            case "jobsIds":
+               clearInterval(checkOnServer);
                jobsIds = value as number[];
                serversIds = (await Database.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
                serversIpAddr = (await Database.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
+               checkOnServer = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
                break;
        }
     });
