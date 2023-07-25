@@ -25,7 +25,7 @@ export function makeServerPingJSON (server: Servers, status: string, pingInfo: s
 }
 
 /**
- * Watch for server connections and ping them if they have not try to connect for a while
+ * Watch for server connections and ping them if they have not tried to connect for a while
  * @param {Map<string, number[]>} serverConnectionsInfo The map that contains the number of connections for each server
  * @param {string[]} serversIpAddr The list of servers IP addresses to watch
  * @returns {NodeJS.Timeout} The interval
