@@ -74,6 +74,6 @@ export async function sendGlobalMessage (service: Services, scenarioPriority: nu
     // IF MESSAGE CONTENT IS DIFFERENT
     if (cachedMessage.mess_content !== messageContent) {
         await apiCash.updateMessageContent(cachedMessage.mes_id, messageContent);
-        cache.set(inCacheName, (await apiCash.getMessage(cachedMessage.mes_id))["priority"] = scenarioPriority, 60*60);
+        cache.set(inCacheName, (await apiCash.getMessage(cachedMessage.mes_id))["priority"] == scenarioPriority, 60*60);
     }
 }

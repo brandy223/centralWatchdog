@@ -78,7 +78,7 @@ export async function getActorsIdsForAction (scenarioId: number, actionId: numbe
     if (actorsListsIds.length !== 0)
         highestPriorityActorList = await ArrayUtils.getHighestPriorityActorsLists(actorsListsIds);
 
-    if (actorsListsIds.length !== 0 && !(highestPriorityActor[0].priority < highestPriorityActorList[0].priority))
+    if (actorsListsIds.length !== 0 && highestPriorityActor[0].priority >= highestPriorityActorList[0].priority)
         return (await dbActors.getAllActorsFromList(highestPriorityActorList[0].listId)).map((actor: ActorsAndLists) => actor.actorId);
     else
         return highestPriorityActor.map((actor: ActorsForScenarios) => actor.actorId);

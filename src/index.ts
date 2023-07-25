@@ -15,7 +15,7 @@ const theme = require('./utils/ColorScheme').theme;
 const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessage;
 const Message = require('./utils/Message');
 
-import { Jobs, Servers, ServersOfJobs, Services } from "@prisma/client";
+import { Jobs, Servers, ServersOfJobs } from "@prisma/client";
 import {Socket} from "socket.io";
 
 const express = require('express');
