@@ -108,37 +108,37 @@ model Scenarios {
 }
 
 model Actions {
-  id          Int                     @id @default(autoincrement())
-  name        String                  @db.VarChar(255)
-  description String?                 @db.VarChar(255)
+  id          Int                  @id @default(autoincrement())
+  name        String               @db.VarChar(255)
+  description String?              @db.VarChar(255)
   scenarios   ActionsOfScenarios[]
-  actors      ActorsForActions[]
-  lists       ActorsListsForActions[]
 }
 
 model ActionsOfScenarios {
   scenarioId Int
   actionId   Int
-  scenario   Scenarios @relation(fields: [scenarioId], references: [id])
-  action     Actions   @relation(fields: [actionId], references: [id])
+  scenario   Scenarios                 @relation(fields: [scenarioId], references: [id])
+  action     Actions                   @relation(fields: [actionId], references: [id])
+  actors     ActorsForScenarios[]
+  lists      ActorsListsForScenarios[]
 
   @@id([actionId, scenarioId])
 }
 
 model Actors {
-  id      Int                @id @default(autoincrement())
-  name    String             @db.VarChar(255)
-  email   String?            @db.VarChar(255)
-  number  String?            @db.VarChar(255)
+  id      Int                  @id @default(autoincrement())
+  name    String               @db.VarChar(255)
+  email   String?              @db.VarChar(255)
+  number  String?              @db.VarChar(255)
   lists   ActorsAndLists[]
-  actions ActorsForActions[]
+  actions ActorsForScenarios[]
 }
 
 model ActorsLists {
-  id      Int                     @id @default(autoincrement())
-  name    String                  @db.VarChar(255)
+  id      Int                       @id @default(autoincrement())
+  name    String                    @db.VarChar(255)
   actors  ActorsAndLists[]
-  actions ActorsListsForActions[]
+  actions ActorsListsForScenarios[]
 }
 
 model ActorsAndLists {
@@ -150,20 +150,24 @@ model ActorsAndLists {
   @@id([actorId, listId])
 }
 
-model ActorsForActions {
-  actionId Int
-  actorId  Int
-  action   Actions @relation(fields: [actionId], references: [id])
-  actor    Actors  @relation(fields: [actorId], references: [id])
+model ActorsForScenarios {
+  actorId            Int
+  actionId           Int
+  scenarioId         Int
+  actor              Actors             @relation(fields: [actorId], references: [id])
+  actionsOfScenarios ActionsOfScenarios @relation(fields: [scenarioId, actionId], references: [scenarioId, actionId])
+  priority           Int                @db.TinyInt
 
-  @@id([actionId, actorId])
+  @@id([actionId, scenarioId, actorId])
 }
 
-model ActorsListsForActions {
-  actionId Int
-  listId   Int
-  action   Actions     @relation(fields: [actionId], references: [id])
-  list     ActorsLists @relation(fields: [listId], references: [id])
+model ActorsListsForScenarios {
+  listId             Int
+  actionId           Int
+  scenarioId         Int
+  list               ActorsLists        @relation(fields: [listId], references: [id])
+  actionsOfScenarios ActionsOfScenarios @relation(fields: [scenarioId, actionId], references: [scenarioId, actionId])
+  priority           Int                @db.TinyInt
 
-  @@id([actionId, listId])
+  @@id([actionId, scenarioId, listId])
 }
