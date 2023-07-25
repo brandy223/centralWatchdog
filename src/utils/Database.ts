@@ -1,6 +1,6 @@
 
 const { PrismaClient } = require('@prisma/client');
-import {Servers, Jobs, StateValues, ServersOfJobs, Scenarios, ActionsOfScenarios, Actions} from "@prisma/client";
+import {Servers, Jobs, StateValues, ServersOfJobs, Scenarios, ActionsOfScenarios, Actions, ActorsForScenarios, ActorsListsForScenarios, Actors, ActorsAndLists} from "@prisma/client";
 const Network = require('./Network');
 
 const prisma = new PrismaClient(
@@ -15,7 +15,7 @@ const prisma = new PrismaClient(
  * @returns {Promise<boolean>} True if the server exists in the database, false otherwise
  */
 export async function isServerInDatabase (ip: string) : Promise<boolean> {
-    return (await getServerByIP(ip)) !== undefined;
+    return (await getServerByIP(ip)) !== null;
 }
 
 /**
@@ -191,7 +191,7 @@ export async function updateServer (ip: string, type: string, port: number, prio
  * @throws {Error} If the server is not in the database
  */
 export async function getServerStateValues (id: number) : Promise<StateValues[]> {
-    if ((await getServerById(id)) === undefined) throw new Error("Server is not in database");
+    if ((await getServerById(id)) === null) throw new Error("Server is not in database");
     return prisma.stateValues.findMany({where: {serverId: id}});
 }
 
@@ -202,7 +202,7 @@ export async function getServerStateValues (id: number) : Promise<StateValues[]>
  * @throws {Error} If the job is not in the database
  */
 export async function getJobStateValues (id: number) : Promise<StateValues[]> {
-if ((await getJobById(id)) === undefined) throw new Error("Job is not in database");
+if ((await getJobById(id)) === null) throw new Error("Job is not in database");
     return prisma.stateValues.findMany({where: {jobId: id}});
 }
 
@@ -222,7 +222,7 @@ export async function getScenarioById (id: number) : Promise<Scenarios> {
  * @throws {Error} If the scenario is not in the database
  */
 export async function getScenarioActionsIds (id: number) : Promise<ActionsOfScenarios[]> {
-    if ((await getScenarioById(id)) === undefined) throw new Error("Scenario is not in database");
+    if ((await getScenarioById(id)) === null) throw new Error("Scenario is not in database");
     return prisma.actionsOfScenarios.findMany({ where: {scenarioId: id}});
 }
 
@@ -233,6 +233,44 @@ export async function getScenarioActionsIds (id: number) : Promise<ActionsOfScen
  */
 export async function getActionsByIds (ids: number[]) : Promise<Actions[]> {
     return prisma.actions.findMany({where: {id: {in: ids}}});
+}
+
+/**
+ * Get actors of an action of a scenario
+ * @param {number} actionId The id of the action
+ * @param {number} scenarioId The id of the scenario
+ * @returns {Promise<ActorsForScenarios[]>} The actors of the action of the scenario
+ */
+export async function getActionActors (actionId: number, scenarioId: number) : Promise<ActorsForScenarios[]> {
+    return prisma.actorsForScenarios.findMany({where: {actionId: actionId, scenarioId: scenarioId}});
+}
+
+/**
+ * Get actors list of an action of a scenario
+ * @param {number} actionId The id of the action
+ * @param {number} scenarioId The id of the scenario
+ * @returns {Promise<ActorsListsForScenarios[]>} The actors list of the action of the scenario
+ */
+export async function getActionActorsList (actionId: number, scenarioId: number) : Promise<ActorsListsForScenarios[]> {
+    return prisma.actorsListsForScenarios.findMany({where: {actionId: actionId, scenarioId: scenarioId}});
+}
+
+/**
+ * Get all actors from actor list
+ * @param {number} id The id of the actor list
+ * @returns {Promise<ActorsAndLists[]>} The actors
+ */
+export async function getAllActorsFromList (id: number) : Promise<ActorsAndLists[]> {
+    return prisma.actorsAndLists.findMany({where: {listId: id}});
+}
+
+/**
+ * Get actors by ids
+ * @param {number[]} ids The id of the actor
+ * @returns {Promise<Actors[]>} The actor
+ */
+export async function getActorsByIds (ids: number[]) : Promise<Actors[]> {
+    return prisma.actors.findMany({where: {id: {in: ids}}});
 }
 
 /**

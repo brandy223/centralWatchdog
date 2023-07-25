@@ -46,7 +46,7 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
                     console.log(theme.warning("Server " + serverIP + " is up! But not sending any data..."));
                 }
                 const server: Servers = await Database.getServerByIP(serverIP);
-                if (server === undefined) throw new Error("Server not found in database");
+                if (server === null) throw new Error("Server not found in database");
                 const messageToSend = await makeServerPingJSON(
                     {
                         "id": server.id,
