@@ -41,7 +41,7 @@ export function extractPingInfo (pingOutput: string) : string[] {
  * Ping all the IP Addresses in the list with an interval of 10 seconds between each ping and a timeout of 5 seconds
  * @param {string[]} ipList The list of IP Addresses to ping
  * @returns {Promise<string[]>} The list of reachable IP Addresses
- * @throws {Error} If the ipList is null or undefined
+ * @throws {Error} If the ipList is null
  */
 export async function pingServers (ipList: string[]) : Promise<string[]> {
     if (ipList === undefined || ipList === null) throw new Error("IP List is null or undefined");

@@ -8,6 +8,8 @@ const Database = require('./utils/Database');
 const ServicesUtils = require('./utils/Services');
 const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
+const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessage;
+const Message = require('./utils/Message');
 
 import { Jobs, Servers, ServersOfJobs, Services } from "@prisma/client";
 import {Socket} from "socket.io";
@@ -27,11 +29,6 @@ app.use(express.json());
 
 async function main(): Promise<void> {
     await Database.centralServerDatabaseInit();
-
-    // const gm  = require("./actions/SendGlobalMessage")
-    // const test: Services[] = await Database.getServicesByIds([1]);
-    // console.log(test);
-    // await gm.sendGlobalMessage(test[0], 1, "test");
 
     let jobsIds: number[] = (await Database.getAllJobs()).map((job: Jobs) => job.id);
     let serversIds: number[] = (await Database.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
@@ -76,13 +73,13 @@ async function main(): Promise<void> {
         serverConnectionsInfo.set(connectedServerIp, [((Array.from(serverConnectionsInfo.get(connectedServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
         console.log(theme.info("New connection " + socket.id + " from " + connectedServerIp));
 
-        socket.on("message", async (message: object): Promise<void> => {
+        socket.on("message", async (message: any): Promise<void> => {
             console.log(message);
             socket.to("main").emit("room_broadcast", message);
             console.log(theme.info("Message's broadcast"));
 
             // Message Parsing
-            // await Message.parseMessage(message);
+            await Message.parseMessage(message);
         });
 
         socket.on("disconnect", (): void => {
@@ -135,6 +132,7 @@ async function main(): Promise<void> {
                 cache.set("jobsIds", jobsIds, 60*60);
                 break;
         }
+        if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
     });
 }
 

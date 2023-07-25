@@ -30,16 +30,16 @@ interface Email {
 
 /**
  * Main function to send an email
- * @param {string} email
- * @param {number} typeOfMessage
- * @param {any} data
+ * @param {string} to The email receiver
+ * @param {number} typeOfMessage The type of message
+ * @param {any} data The data to send
  * @returns {Promise<void>}
  * @throws {Error} If the email is not valid
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
-export async function main(email: string, typeOfMessage: number, data: any): Promise<void> {
-    if (!validator.validate(email)) throw new Error("Email is not valid");
-    const emailToSend = await emailConstructor(email, typeOfMessage, data);
+export async function main(to: string, typeOfMessage: number, data: any): Promise<void> {
+    if (!validator.validate(to)) throw new Error("Email is not valid");
+    const emailToSend = await emailConstructor(to, typeOfMessage, data);
     await sendEmail(emailToSend);
 }
 
@@ -60,16 +60,17 @@ async function emailConstructor(email: string, typeOfMessage: number, data: any)
         // SERVER PING
         case 0:
             subject = `Server ${data.server.ipAddr} is ${data.status}`;
+            console.log(data);
             data.statusInfo.shift()
             text = `Server ${data.server.ipAddr} is ${data.status}<br><u>More info:</u> ${data.statusInfo}`;
             html = `<h3>${subject}</h3><p>${text}</p>`;
             break;
         // SERVICE TEST
-        // case 1:
-        //     subject = `Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}`;
-        //     text = `Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}\nMore info: ${data.statusInfo}`;
-        //     html = `<h3>Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}</h3>`;
-        //     break;
+        case 1:
+           subject = `Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}`;
+            text = `Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}\nMore info: ${data.statusInfo}`;
+            html = `<h3>Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}</h3>`;
+            break;
         default:
             throw new Error("Type of message is not valid");
     }

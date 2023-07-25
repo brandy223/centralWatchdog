@@ -1,11 +1,20 @@
-import {Actions, ActionsOfScenarios, Scenarios, StateValues} from "@prisma/client";
+import {
+    Actions,
+    ActionsOfScenarios, Actors, ActorsAndLists,
+    ActorsForScenarios,
+    ActorsListsForScenarios,
+    Scenarios,
+    StateValues
+} from "@prisma/client";
 
 const Database = require('./Database');
 const MapUtils = require('./utilities/Map');
+const ArrayUtils = require('./utilities/Array');
 const theme = require('./ColorScheme').theme;
 
+const actionUtils = require('../actions/Utilities');
 const sendMessage = require('../actions/SendMessage').sendMessage;
-const sendEmail = require('../actions/SendEmail').sendEmail;
+
 const sendGlobalMessage = require('../actions/SendGlobalMessage').sendGlobalMessage;
 const reboot = require('../actions/Reboot').reboot;
 
@@ -18,7 +27,6 @@ export async function parseMessage(message: any): Promise<void> {
     switch (Number(message.messageType)) {
         // Ping Message
         case 1:
-
             break;
         // Service Message
         case 2:
@@ -36,7 +44,7 @@ async function pingMessageHandler(message: object): Promise<void> {
 
 }
 
-async function serviceMessageHandler(message: object): Promise<void> {
+async function serviceMessageHandler(message: any): Promise<void> {
     const stateValues: any[] = await Database.getJobStateValues(message.job.id);
     if (stateValues.length === 0) return;
 
@@ -63,17 +71,22 @@ async function serviceMessageHandler(message: object): Promise<void> {
         }
     }
     const highestPriorityStateValue: number = MapUtils.getHighestPriorityStateValue(stateValuesMap);
-    if (highestPriorityStateValue[0] === -1) return;
-    const stateValue: StateValues = await Database.getStateValueById(highestPriorityStateValue[0].key());
-    if (stateValue === undefined) throw new Error("State value is not in database");
+    if (highestPriorityStateValue === -1) return;
+    const stateValue: StateValues = await Database.getStateValueById(highestPriorityStateValue);
+    if (stateValue === null) throw new Error("State value is not in database");
     const scenario: Scenarios = await Database.getScenarioById(stateValue.scenarioId);
     const actionsIds: ActionsOfScenarios[] = await Database.getScenarioActionsIds(scenario.id);
     const actions: Actions[] = await Database.getActionsByIds(actionsIds.map((action: ActionsOfScenarios) => action.actionId))
-    for (const action: Actions of actions) {
+    for (const action of actions) {
         switch (action.name.toLowerCase()) {
             case "sendmail":
-                // TODO: DETERMINE RECEIVER BEFORE SENDING
-                // await sendMessage(action, message);
+
+                const actorsIdsListToNotify: number[] = await actionUtils.getActorsIdsForAction(scenario.id, action.id);
+                const actorsListToNotify: Actors[] = await Database.getActorsByIds(actorsIdsListToNotify);
+                await actionUtils.sendEmailToActors(actorsListToNotify, 1, message);
+
+                // TODO: Refactor code there
+
                 break;
             case "sendmessage":
                 // TODO: DETERMINE RECEIVER BEFORE SENDING
