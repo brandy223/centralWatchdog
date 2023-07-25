@@ -4,7 +4,11 @@ export const eventEmitter = new events.EventEmitter();
 const dotenv = require('dotenv');
 dotenv.config();
 
-const Database = require('./utils/Database');
+// DATABASE
+const s = require('./utils/database/Servers');
+const j = require('./utils/database/Jobs');
+const misc = require('./utils/database/Misc');
+
 const ServicesUtils = require('./utils/Services');
 const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
@@ -28,11 +32,11 @@ export const cache = new NodeCache({
 app.use(express.json());
 
 async function main(): Promise<void> {
-    await Database.centralServerDatabaseInit();
+    await misc.centralServerDatabaseInit();
 
-    let jobsIds: number[] = (await Database.getAllJobs()).map((job: Jobs) => job.id);
-    let serversIds: number[] = (await Database.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
-    let serversIpAddr: string[] = (await Database.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
+    let jobsIds: number[] = (await j.getAllJobs()).map((job: Jobs) => job.id);
+    let serversIds: number[] = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
+    let serversIpAddr: string[] = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
     console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
     cache.set("jobsIds", jobsIds, 60*60);
 
@@ -118,8 +122,8 @@ async function main(): Promise<void> {
            case "jobsIds":
                clearInterval(checkOnServer);
                jobsIds = value as number[];
-               serversIds = (await Database.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
-               serversIpAddr = (await Database.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
+               serversIds = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
+               serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
                checkOnServer = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
                break;
        }
@@ -128,7 +132,7 @@ async function main(): Promise<void> {
     cache.on("expired", async (key: string, value: (number | string)[]): Promise<void> => {
         switch (key) {
             case "jobsIds":
-                jobsIds = (await Database.getAllJobs()).map((job: Jobs) => job.id);
+                jobsIds = (await j.getAllJobs()).map((job: Jobs) => job.id);
                 cache.set("jobsIds", jobsIds, 60*60);
                 break;
         }
@@ -143,7 +147,7 @@ main();
  * @returns {Promise<void>}
  */
 async function updateJobsListInCache(): Promise<void> {
-    const jobsIds: number[] = (await Database.getAllJobs()).map((job: Jobs) => job.id);
+    const jobsIds: number[] = (await j.getAllJobs()).map((job: Jobs) => job.id);
     if (cache.get("jobsIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("jobsIds"), jobsIds))) return;
     cache.set("jobsIds", jobsIds);
     console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));

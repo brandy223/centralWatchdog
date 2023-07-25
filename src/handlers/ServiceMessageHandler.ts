@@ -1,12 +1,21 @@
-const Database = require("../utils/Database");
-import {theme} from "../utils/ColorScheme";
+
+import {Actions, Actors, Scenarios, Servers} from "@prisma/client";
+
+// DATABASE
+const s = require("../utils/database/Servers");
+const sv = require("../utils/database/StateValues");
+const sc = require("../utils/database/Scenarios");
+const dbActions = require("../utils/database/Actions");
+const dbActors = require("../utils/database/Actors");
+
+import { stateValuesHandler } from "./StateValuesHandler";
+const sendEmail = require("../actions/SendEmail").main;
 const MapUtils = require("../utils/utilities/Map");
-import {Actions, ActionsOfScenarios, Actors, Scenarios, StateValues} from "@prisma/client";
-const actionUtils = require("../actions/Utilities");
-import {stateValuesHandler} from "./StateValuesHandler";
+
+import {theme} from "../utils/ColorScheme";
 
 export async function serviceMessageHandler(message: any): Promise<void> {
-    const stateValues: any[] = await Database.getJobStateValues(message.job.id);
+    const stateValues: any[] = await sv.getJobStateValues(message.job.id);
     if (stateValues.length === 0) return;
 
     const stateValuesMap = await stateValuesHandler(message.status, stateValues);
@@ -14,16 +23,16 @@ export async function serviceMessageHandler(message: any): Promise<void> {
     if (highestPriorityStateValue === -1) return;
 
     // GET SCENARIO ID FROM STATE VALUE ID
-    const scenario: Scenarios = await Database.getScenarioFromStateValueId(highestPriorityStateValue);
-    const actions: Actions[] = await Database.getActionsFromStateValueId(highestPriorityStateValue);
+    const scenario: Scenarios = await sc.getScenarioFromStateValueId(highestPriorityStateValue);
+    const actions: Actions[] = await dbActions.getActionsFromStateValueId(highestPriorityStateValue);
 
     for (const action of actions) {
         switch (action.name.toLowerCase()) {
 
             case "sendmail":
-                const actorsIdsListToNotify: number[] = await actionUtils.getActorsIdsForAction(scenario.id, action.id);
-                const actorsListToNotify: Actors[] = await Database.getActorsByIds(actorsIdsListToNotify);
-                await actionUtils.sendEmailToActors(actorsListToNotify, 1, message);
+                const actorsIdsListToNotify: number[] = await dbActors.getActorsIdsForAction(scenario.id, action.id);
+                const actorsListToNotify: Actors[] = await dbActors.getActorsByIds(actorsIdsListToNotify);
+                await sendEmail(actorsListToNotify, 1, message);
 
                 // TODO: Refactor code there
 
@@ -36,7 +45,7 @@ export async function serviceMessageHandler(message: any): Promise<void> {
                 // await sendGlobalMessage(action, message);
                 break;
             case "reboot":
-                const server = await Database.getServerById(message.server.id);
+                const server: Servers[] = await s.getServersByIds([message.server.id]);
                 // await reboot(server.ipAddr, process.env.SSH_USER);
                 break;
             default:

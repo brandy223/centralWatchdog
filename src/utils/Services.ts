@@ -1,5 +1,7 @@
 
-const Database = require("./Database");
+// DATABASE
+const s = require("./database/Servers");
+
 const Network = require("./Network");
 const theme = require("./ColorScheme").theme;
 const eventEmitter = require("../index").eventEmitter;
@@ -45,7 +47,7 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
                     isUp.push("Problem with NodeJS App probably");
                     console.log(theme.warning("Server " + serverIP + " is up! But not sending any data..."));
                 }
-                const server: Servers = await Database.getServerByIP(serverIP);
+                const server: Servers = await s.getServerByIP(serverIP);
                 if (server === null) throw new Error("Server not found in database");
                 const messageToSend = await makeServerPingJSON(
                     {

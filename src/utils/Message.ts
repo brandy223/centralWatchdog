@@ -1,23 +1,6 @@
-import {
-    Actions,
-    ActionsOfScenarios, Actors, ActorsAndLists,
-    ActorsForScenarios,
-    ActorsListsForScenarios,
-    Scenarios,
-    StateValues
-} from "@prisma/client";
-import {serviceMessageHandler} from "../handlers/ServiceMessageHandler";
 
-const Database = require('./Database');
-const MapUtils = require('./utilities/Map');
-const ArrayUtils = require('./utilities/Array');
+import { serviceMessageHandler } from "../handlers/ServiceMessageHandler";
 const theme = require('./ColorScheme').theme;
-
-const actionUtils = require('../actions/Utilities');
-const sendMessage = require('../actions/SendMessage').sendMessage;
-
-const sendGlobalMessage = require('../actions/SendGlobalMessage').sendGlobalMessage;
-const reboot = require('../actions/Reboot').reboot;
 
 /**
  * Parse message from server and execute the corresponding action

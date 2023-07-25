@@ -1,4 +1,8 @@
 
+import {Actors} from "@prisma/client";
+
+const utils = require("../actions/Utilities");
+
 const validator = require('email-validator');
 const theme = require("../utils/ColorScheme").theme;
 const nodemailer = require('nodemailer');
@@ -29,6 +33,28 @@ interface Email {
 }
 
 /**
+ * Send email to a list of actors
+ * @param {Actors[]} actors The actors to send the email to
+ * @param {number} typeOfMessage The type of message
+ * @param {any} data The data to send
+ * @returns {Promise<void>}
+ * @throws {Error} If the list of actors is empty
+ */
+export async function main(actors: Actors[], typeOfMessage: number, data: any) : Promise<void> {
+    if (actors.length === 0) throw new Error("No actors given");
+
+    // TODO: NEED TO ADD COOL DOWN
+
+    for (const actor of actors) {
+        if ((await utils.isPersonFree(actor.id))) {
+            if (actor.email !== null) {
+                await email(actor.email, typeOfMessage, data);
+            }
+        }
+    }
+}
+
+/**
  * Main function to send an email
  * @param {string} to The email receiver
  * @param {number} typeOfMessage The type of message
@@ -37,7 +63,7 @@ interface Email {
  * @throws {Error} If the email is not valid
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
-export async function main(to: string, typeOfMessage: number, data: any): Promise<void> {
+export async function email(to: string, typeOfMessage: number, data: any): Promise<void> {
     if (!validator.validate(to)) throw new Error("Email is not valid");
     const emailToSend = await emailConstructor(to, typeOfMessage, data);
     await sendEmail(emailToSend);
