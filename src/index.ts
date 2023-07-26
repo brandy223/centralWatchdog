@@ -13,7 +13,7 @@ const ServicesUtils = require('./utils/Services');
 const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
 const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessage;
-const Message = require('./utils/Message');
+const { messageHandler } = require('./handlers/MessageHandler');
 
 import { Jobs, Servers, ServersOfJobs } from "@prisma/client";
 import {Socket} from "socket.io";
@@ -83,7 +83,7 @@ async function main(): Promise<void> {
             console.log(theme.info("Message's broadcast"));
 
             // Message Parsing
-            await Message.parseMessage(message);
+            await messageHandler(message);
         });
 
         socket.on("disconnect", (): void => {

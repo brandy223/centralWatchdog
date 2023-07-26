@@ -1,4 +1,4 @@
-import {Services} from "@prisma/client";
+import {Servers, Services} from "@prisma/client";
 
 // DATABASE
 const apiCash = require("../utils/database/ApiCash");
@@ -18,13 +18,16 @@ type Message = {
 
 /**
  * Set global message on apiCash
- * @param {Services} service The service that is the target of the message
+ * @param {Services | Servers} target The service that is the target of the message
  * @param {number} scenarioPriority The priority of the scenario (for the inCache name)
  * @param {string} messageContent The content of the message
  * @returns {Promise<void>}
  */
-export async function sendGlobalMessage (service: Services, scenarioPriority: number, messageContent: string) : Promise<void> {
-    const inCacheName: string = `${service.name}_apiCash_message_${scenarioPriority}`;
+export async function main (target: Services | Servers, scenarioPriority: number, messageContent: string) : Promise<void> {
+    let inCacheName: string = "";
+    if (typeof target === "Services") inCacheName = `${target.name}_apiCash_message_${scenarioPriority}`;
+    else inCacheName = `${target.ipAddr}_apiCash_message_${scenarioPriority}`;
+
     const cachedMessage: Message | undefined = cache.get(inCacheName);
 
     if (cachedMessage === undefined) {
@@ -37,7 +40,9 @@ export async function sendGlobalMessage (service: Services, scenarioPriority: nu
             if (priority > scenarioPriority) prioritiesToSuppress.push(priority);
 
         for (const priority of prioritiesToSuppress) {
-            const inCacheName: string = `${service.name}_apiCash_message_${priority}`;
+            let inCacheName: string = "";
+            if (typeof target === "Services") inCacheName = `${target.name}_apiCash_message_${scenarioPriority}`;
+            else inCacheName = `${target.ipAddr}_apiCash_message_${scenarioPriority}`;
             const cachedMessage: Message | undefined = cache.get(inCacheName);
             if (cachedMessage !== undefined) {
                 await apiCash.deleteMessage(cachedMessage.mes_id);
@@ -48,7 +53,9 @@ export async function sendGlobalMessage (service: Services, scenarioPriority: nu
         if (!(await arrayUtils.compareArrays(prioritiesToSuppress, prioritiesToTest))) {
             const higherPriorities: number[] = prioritiesToTest.filter((priority: number) => prioritiesToSuppress.indexOf(priority) === -1);
             for (const priority of higherPriorities) {
-                const inCacheName: string = `${service.name}_apiCash_message_${priority}`;
+                let inCacheName: string = "";
+                if (typeof target === "Services") inCacheName = `${target.name}_apiCash_message_${scenarioPriority}`;
+                else inCacheName = `${target.ipAddr}_apiCash_message_${scenarioPriority}`;
                 const cachedMessage: Message | undefined = cache.get(inCacheName);
                 if (cachedMessage !== undefined) return;
             }

@@ -1,9 +1,10 @@
 
-import {Actions, Actors, Scenarios, Servers} from "@prisma/client";
+import {Actions, Scenarios, Servers, Services} from "@prisma/client";
 
 // DATABASE
 const s = require("../utils/database/Servers");
 const sv = require("../utils/database/StateValues");
+const svc = require("../utils/database/Services");
 const sc = require("../utils/database/Scenarios");
 const dbActions = require("../utils/database/Actions");
 const dbActors = require("../utils/database/Actors");
@@ -11,12 +12,13 @@ const dbActors = require("../utils/database/Actors");
 import { stateValuesHandler } from "./StateValuesHandler";
 const sendEmail = require("../actions/SendEmail").main;
 const sendMessage = require("../actions/SendMessage").main;
+const sendGlobalMessage = require("../actions/SendGlobalMessage").main;
 const MapUtils = require("../utils/utilities/Map");
 
 import {theme} from "../utils/ColorScheme";
 import {isItTheGoodTime} from "../actions/Utilities";
 
-export async function serviceMessageHandler(message: any): Promise<void> {
+export async function actionHandler(message: any): Promise<void> {
     const stateValues: any[] = await sv.getJobStateValues(message.job.id);
     if (stateValues.length === 0) return;
 
@@ -30,7 +32,6 @@ export async function serviceMessageHandler(message: any): Promise<void> {
 
     for (const action of actions) {
         switch (action.name.toLowerCase()) {
-
             case "sendmail":
                 if (!(await isItTheGoodTime())) break;
                 await sendEmail(await dbActors.getActorsListToNotify(scenario.id, action.id), 1, message);
@@ -40,7 +41,8 @@ export async function serviceMessageHandler(message: any): Promise<void> {
                 await sendMessage(await dbActors.getActorsListToNotify(scenario.id, action.id), message);
                 break;
             case "sendglobalmessage":
-                // await sendGlobalMessage(action, message);
+                const service: Services[] = await svc.getServicesByIds([message.service.id]);
+                await sendGlobalMessage(service[0], highestPriorityStateValue, message.status);
                 break;
             case "reboot":
                 const server: Servers[] = await s.getServersByIds([message.server.id]);
