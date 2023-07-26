@@ -10,9 +10,11 @@ const dbActors = require("../utils/database/Actors");
 
 import { stateValuesHandler } from "./StateValuesHandler";
 const sendEmail = require("../actions/SendEmail").main;
+const sendMessage = require("../actions/SendMessage").main;
 const MapUtils = require("../utils/utilities/Map");
 
 import {theme} from "../utils/ColorScheme";
+import {isItTheGoodTime} from "../actions/Utilities";
 
 export async function serviceMessageHandler(message: any): Promise<void> {
     const stateValues: any[] = await sv.getJobStateValues(message.job.id);
@@ -30,16 +32,12 @@ export async function serviceMessageHandler(message: any): Promise<void> {
         switch (action.name.toLowerCase()) {
 
             case "sendmail":
-                const actorsIdsListToNotify: number[] = await dbActors.getActorsIdsForAction(scenario.id, action.id);
-                const actorsListToNotify: Actors[] = await dbActors.getActorsByIds(actorsIdsListToNotify);
-                await sendEmail(actorsListToNotify, 1, message);
-
-                // TODO: Refactor code there
-
+                if (!(await isItTheGoodTime())) break;
+                await sendEmail(await dbActors.getActorsListToNotify(scenario.id, action.id), 1, message);
                 break;
             case "sendmessage":
-                // TODO: DETERMINE RECEIVER BEFORE SENDING
-                // await sendEmail(action, message);
+                if (!(await isItTheGoodTime())) break;
+                await sendMessage(await dbActors.getActorsListToNotify(scenario.id, action.id), message);
                 break;
             case "sendglobalmessage":
                 // await sendGlobalMessage(action, message);
