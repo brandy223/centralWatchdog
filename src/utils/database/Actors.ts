@@ -7,7 +7,7 @@ import {
 } from '@prisma/client';
 
 const dbActors = require('./Actors');
-const ArrayUtils = require('../utilities/Array');
+const utils = require('../../actions/Utilities');
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient(
@@ -58,28 +58,101 @@ export async function getActionActorsList (actionId: number, scenarioId: number)
  * Give actors lists depending on the scenario and the action
  * @param {number} scenarioId The id of the scenario
  * @param {number} actionId The id of the action
- * @returns {Promise<number[]>} The actors lists IDs
+ * @returns {Promise<number[] | undefined>} The actors lists IDs
  */
 export async function getActorsIdsForAction (scenarioId: number, actionId: number) : Promise<number[]> {
     // FIND ACTORS AND ACTORS LISTS OF ACTION
     const actorsIds: ActorsForScenarios[] = await dbActors.getActionActors(actionId, scenarioId);
-    console.log(actorsIds);
     const actorsListsIds: ActorsListsForScenarios[] = await dbActors.getActionActorsList(actionId, scenarioId);
-    console.log(actorsListsIds);
 
-    let highestPriorityActor: ActorsForScenarios[] = [];
-    let highestPriorityActorList: ActorsListsForScenarios[] = [];
+    const actorsIdsMap = new Map<number, number>();
+    if (actorsIds.length !== 0) {
+        for (const actor of actorsIds) {
+            actorsIdsMap.set(actor.actorId, actor.priority);
+        }
+    }
+    if (actorsListsIds.length !== 0) {
+        for (const actorList of actorsListsIds) {
+            const actorsIds: number[] = (await dbActors.getAllActorsFromList(actorList.listId)).map((actor: ActorsAndLists) => actor.actorId);
+            for (const actorId of actorsIds) {
+                const mapValue: number | undefined = actorsIdsMap.get(actorId)
+                if (mapValue !== undefined && mapValue < actorList.priority) continue;
+                actorsIdsMap.set(actorId, actorList.priority);
+            }
+        }
+    }
 
-    // DETERMINE HIGHEST PRIORITY ACTOR
-    if (actorsIds.length !== 0)
-        highestPriorityActor  = await ArrayUtils.getHighestPriorityActors(actorsIds);
+    // GET FREE ACTORS
+    const excludedPriorityValues: number[] = [];
+    const freeActorsIds: Map<number, number> = await getFreeActorsIds(actorsIdsMap, excludedPriorityValues);
 
-    // DETERMINE HIGHEST PRIORITY ACTOR LIST
-    if (actorsListsIds.length !== 0)
-        highestPriorityActorList = await ArrayUtils.getHighestPriorityActorsLists(actorsListsIds);
+    return [...freeActorsIds.keys()];
+}
 
-    if (actorsListsIds.length !== 0 && highestPriorityActor[0].priority >= highestPriorityActorList[0].priority)
-        return (await dbActors.getAllActorsFromList(highestPriorityActorList[0].listId)).map((actor: ActorsAndLists) => actor.actorId);
-    else
-        return highestPriorityActor.map((actor: ActorsForScenarios) => actor.actorId);
+/**
+ * Get free actors of a list of actors ids
+ * @param {ActorsForScenarios[]} actorsIds The actors ids
+ * @param {number[]} excludedPriorityValues The priority values to exclude
+ * @returns {Promise<ActorsForScenarios[]>} The free actors
+ * @throws {Error} If priority to exclude is undefined
+ */
+async function getFreeActorsIds (actorsIds: Map<number, number>, excludedPriorityValues: number[]) : Promise<Map<number, number>> {
+    let highestPriorityActor = new Map<number, number>;
+    let freeActors = new Map<number, number>();
+    let freeActorsCounter: number = 0;
+
+    // DETERMINE HIGHEST PRIORITY ACTORS
+    if (actorsIds.size !== 0)
+        highestPriorityActor  = await getHighestPriorityActors(actorsIds, []);
+
+    for (const [actorId, priority] of highestPriorityActor) {
+        if (await utils.isPersonFree(actorId)) {
+            freeActorsCounter++;
+            freeActors.set(actorId, priority);
+        }
+    }
+    if (freeActorsCounter === 0) {
+        const priorityToExclude: number | undefined = highestPriorityActor.get(0);
+        if (priorityToExclude === undefined) throw new Error("Priority to exclude is undefined");
+        excludedPriorityValues.push(priorityToExclude);
+        await getFreeActorsIds(actorsIds, excludedPriorityValues);
+    }
+    return freeActors;
+}
+
+/**
+ * Returns the indexes of the highest priority actors
+ * @param {Map<number, number>} actorsIds The actors to get the highest priority from
+ * @param {number[]} excludedPriorityValues The priority values to exclude
+ * @return {Promise<ActorsForScenarios[]>} The actors with the highest priority
+ * @throws {Error} If no actors are given
+ */
+async function getHighestPriorityActors(actorsIds: Map<number, number>, excludedPriorityValues: number[]): Promise<Map<number, number>> {
+    if (actorsIds.size === 0) throw new Error("No actors given");
+    const highestPriorityActors: Map<number, number> = new Map();
+    let highestPriority: number = 100;
+    for (const [actorId, priority] of actorsIds) {
+        if (priority < highestPriority && !excludedPriorityValues.includes(priority)) {
+            highestPriority = priority;
+            highestPriorityActors.clear();
+            highestPriorityActors.set(actorId, priority);
+        }
+        else if (priority === highestPriority && !excludedPriorityValues.includes(priority)) {
+            highestPriorityActors.set(actorId, priority);
+        }
+    }
+
+    return highestPriorityActors;
+}
+
+/**
+ * Get actors List to notify
+ * @param {number} scenarioId The id of the scenario
+ * @param {number} actionId The id of the action
+ * @returns {Promise<Actors[]>} The actors list to notify
+ */
+export async function getActorsListToNotify (scenarioId: number, actionId: number) : Promise<Actors[]> {
+    const actorsIdsListToNotify: number[] = await dbActors.getActorsIdsForAction(scenarioId, actionId);
+    if (actorsIdsListToNotify.length === 0) return [];
+    return dbActors.getActorsByIds(actorsIdsListToNotify);
 }
