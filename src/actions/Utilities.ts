@@ -18,3 +18,13 @@ export async function isPersonFree (id: number) : Promise<boolean> {
     if (JSON.stringify(res.data).includes("undefined")) throw new Error("Person ID does not exist");
     return !JSON.stringify(res.data).includes("Absent");
 }
+
+/**
+ * Verify if it is the good time to send a message / mail
+ * @returns {Promise<boolean>} True if it is the good time, false otherwise
+ */
+export async function isItTheGoodTime() : Promise<boolean> {
+    const date: Date = new Date();
+    const hour: number = date.getHours();
+    return hour <= 20 && hour >= 6;
+}
