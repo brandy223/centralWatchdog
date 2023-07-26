@@ -43,8 +43,6 @@ let lastEmailSent = new Map<number, number>;
 export async function main(actors: Actors[], typeOfMessage: number, data: any) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
-    console.log(actors);
-
     for (const actor of actors) {
         if (actor.email === null) {
             console.log(theme.warning(`Actor ${actor.id} has no email`));
