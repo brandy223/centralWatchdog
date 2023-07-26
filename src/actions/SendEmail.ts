@@ -1,8 +1,6 @@
 
 import {Actors} from "@prisma/client";
 
-const utils = require("../actions/Utilities");
-
 const validator = require('email-validator');
 const theme = require("../utils/ColorScheme").theme;
 const nodemailer = require('nodemailer');
@@ -32,6 +30,8 @@ interface Email {
     html: string;
 }
 
+let lastEmailSent = new Map<number, number>;
+
 /**
  * Send email to a list of actors
  * @param {Actors[]} actors The actors to send the email to
@@ -43,14 +43,20 @@ interface Email {
 export async function main(actors: Actors[], typeOfMessage: number, data: any) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
-    // TODO: NEED TO ADD COOL DOWN
+    console.log(actors);
 
     for (const actor of actors) {
-        if ((await utils.isPersonFree(actor.id))) {
-            if (actor.email !== null) {
-                await email(actor.email, typeOfMessage, data);
-            }
+        if (actor.email === null) {
+            console.log(theme.warning(`Actor ${actor.id} has no email`));
+            continue;
         }
+        const lastEmailSentTime: number | undefined = lastEmailSent.get(actor.id);
+        if (lastEmailSentTime !== undefined && Math.abs(lastEmailSentTime - Date.now()) < Number(process.env.EMAIL_COOLDOWN)) {
+            console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${process.env.EMAIL_COOLDOWN}ms ago`));
+            continue;
+        }
+        lastEmailSent.set(actor.id, Date.now());
+        await email(actor.email, typeOfMessage, data);
     }
 }
 
