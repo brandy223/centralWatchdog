@@ -23,7 +23,7 @@ export async function centralServerDatabaseInit(): Promise<void> {
 
     // VERIFY IF ANOTHER CENTRAL SERVER EXISTS IN DATABASE
     if (await s.isThereAnotherCentralServer(ip)) {
-        serverPriority = 0;
+        serverPriority = 2;
     }
 
     // VERIFY SERVER EXISTS IN DATABASE
