@@ -1,7 +1,12 @@
-import {Servers, Services} from "@prisma/client";
+import {Servers, ServiceObjects, Services} from "@prisma/client";
+import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {getServicesOfServerById} from "../utils/database/Services";
+import {theme} from "../utils/ColorScheme";
 
 // DATABASE
 const apiCash = require("../utils/database/ApiCash");
+const sv = require("../utils/database/Services");
+const o = require("../utils/database/ServiceObject");
 
 const cache = require("../index").cache;
 const arrayUtils = require("../utils/utilities/Array");
@@ -12,22 +17,18 @@ type Message = {
     mess_begin: number,
     mess_end: number,
     // mess_site: string,
-    // USR_0: string
+    // USR_0: string,
     // priority: number
 }
 
 /**
  * Set global message on apiCash
- * @param {Services | Servers} target The service that is the target of the message
- * @param {number} scenarioPriority The priority of the scenario (for the inCache name)
+ * @param {string} inCacheName The inCache name of the message
  * @param {string} messageContent The content of the message
+ * @param {number} scenarioPriority The priority of the scenario
  * @returns {Promise<void>}
  */
-export async function main (target: Services | Servers, scenarioPriority: number, messageContent: string) : Promise<void> {
-    let inCacheName: string = "";
-    if (typeof target === "Services") inCacheName = `${target.name}_apiCash_message_${scenarioPriority}`;
-    else inCacheName = `${target.ipAddr}_apiCash_message_${scenarioPriority}`;
-
+export async function main (inCacheName: string, messageContent: string, scenarioPriority: number) : Promise<void> {
     const cachedMessage: Message | undefined = cache.get(inCacheName);
 
     if (cachedMessage === undefined) {
@@ -40,23 +41,19 @@ export async function main (target: Services | Servers, scenarioPriority: number
             if (priority > scenarioPriority) prioritiesToSuppress.push(priority);
 
         for (const priority of prioritiesToSuppress) {
-            let inCacheName: string = "";
-            if (typeof target === "Services") inCacheName = `${target.name}_apiCash_message_${scenarioPriority}`;
-            else inCacheName = `${target.ipAddr}_apiCash_message_${scenarioPriority}`;
-            const cachedMessage: Message | undefined = cache.get(inCacheName);
+            let newCacheName: string = inCacheName.substring(0, inCacheName.length - 1) + priority;
+            const cachedMessage: Message | undefined = cache.get(newCacheName);
             if (cachedMessage !== undefined) {
                 await apiCash.deleteMessage(cachedMessage.mes_id);
-                cache.del(inCacheName);
+                cache.del(newCacheName);
             }
         }
         // IF NOT THE SAME CONTENT, THEN MESSAGE WITH HIGHER PRIORITY PROBABLY EXISTS
         if (!(await arrayUtils.compareArrays(prioritiesToSuppress, prioritiesToTest))) {
             const higherPriorities: number[] = prioritiesToTest.filter((priority: number) => prioritiesToSuppress.indexOf(priority) === -1);
             for (const priority of higherPriorities) {
-                let inCacheName: string = "";
-                if (typeof target === "Services") inCacheName = `${target.name}_apiCash_message_${scenarioPriority}`;
-                else inCacheName = `${target.ipAddr}_apiCash_message_${scenarioPriority}`;
-                const cachedMessage: Message | undefined = cache.get(inCacheName);
+                let newCacheName: string = inCacheName.substring(0, inCacheName.length - 1) + priority;
+                const cachedMessage: Message | undefined = cache.get(newCacheName);
                 if (cachedMessage !== undefined) return;
             }
         }
@@ -83,4 +80,48 @@ export async function main (target: Services | Servers, scenarioPriority: number
         await apiCash.updateMessageContent(cachedMessage.mes_id, messageContent);
         cache.set(inCacheName, (await apiCash.getMessage(cachedMessage.mes_id))["priority"] == scenarioPriority, 60*60);
     }
+}
+
+/**
+ * Create the inCache name for the message and its content
+ * @param { PingTemplate | ServiceTestTemplate | ServiceObjectTemplate } message the message that contains the information
+ * @param { number } scenarioPriority the priority of the scenario
+ * @returns { string[] } the inCache name and message content
+ */
+export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | ServiceObjectTemplate), scenarioPriority: number) : string[] {
+    let inCacheName: string = "";
+    let messageContent: string = "";
+
+    switch(message.messageType) {
+        case 1:
+            if (message instanceof PingTemplate) {
+                inCacheName = `${message.server.ip}_apiCash_message_${scenarioPriority}`;
+                const servicesNames: string[] = await sv.getServicesOfServerById(message.server.id).map((service: Services) => service.name);
+                messageContent = `Le serveur ${message.server.ip} est injoignable. Les services suivants sont impactés : ${servicesNames.join(", ")}`;
+                //? TODO: implement state value description ??
+            }
+            break;
+        case 2:
+            if (message instanceof ServiceTestTemplate) {
+                inCacheName = `${message.service.name}_apiCash_message_${scenarioPriority}`;
+                const objectsNames: string[] = await o.getServiceObjectsOfServiceById(message.service.id).map((object: ServiceObjects) => object.name);
+                messageContent = `Le service ${message.service.name} est injoignable. Les objets suivants sont impactés : ${objectsNames.join(", ")}`;
+                //? TODO: implement state value description ??
+            }
+            break;
+        case 3:
+            // TODO: TO BE IMPLEMENTED
+            break;
+        case 4:
+            if (message instanceof ServiceObjectTemplate) {
+                inCacheName = `${message.serviceObject.name}_apiCash_message_${scenarioPriority}`;
+                messageContent = `UNDEFINED`;
+                // TODO: Define message content HERE
+            }
+            break;
+        default:
+            console.log(theme.error("Message type not recognized"));
+            break;
+    }
+    return [inCacheName, messageContent];
 }
