@@ -1,5 +1,5 @@
 
-import {Actions, Scenarios, Servers, Services} from "@prisma/client";
+import {Actions, Scenarios, Servers, Services, StateValues} from "@prisma/client";
 
 // DATABASE
 const s = require("../utils/database/Servers");
@@ -18,11 +18,21 @@ const MapUtils = require("../utils/utilities/Map");
 import {theme} from "../utils/ColorScheme";
 import {isItTheGoodTime} from "../actions/Utilities";
 
-export async function actionHandler(message: any): Promise<void> {
-    const stateValues: any[] = await sv.getJobStateValues(message.job.id);
+import { PingTemplate, ServiceTestTemplate } from "../templates/DataTemplates";
+
+/**
+ * Parse message from server and execute the corresponding action
+ * @param {PingTemplate | ServiceTestTemplate} message Message to parse
+ * @return {Promise<void>}
+ */
+export async function actionHandler(message: (PingTemplate | ServiceTestTemplate)): Promise<void> {
+    let stateValues: StateValues[] = [];
+
+    if (message instanceof PingTemplate && message.messageType === 1) stateValues = await sv.getServerStateValues(message.server.id);
+    else if (message instanceof ServiceTestTemplate && message.messageType === 2) stateValues = await sv.getJobStateValues(message.job.id);
     if (stateValues.length === 0) return;
 
-    const stateValuesMap = await stateValuesHandler(message.status, stateValues);
+    const stateValuesMap = await stateValuesHandler(message, stateValues);
     const highestPriorityStateValue: number = MapUtils.getHighestPriorityStateValue(stateValuesMap);
     if (highestPriorityStateValue === -1) return;
 
@@ -34,15 +44,17 @@ export async function actionHandler(message: any): Promise<void> {
         switch (action.name.toLowerCase()) {
             case "sendmail":
                 if (!(await isItTheGoodTime())) break;
-                await sendEmail(await dbActors.getActorsListToNotify(scenario.id, action.id), 1, message);
+                await sendEmail(await dbActors.getActorsListToNotify(scenario.id, action.id), message);
                 break;
             case "sendmessage":
                 if (!(await isItTheGoodTime())) break;
                 await sendMessage(await dbActors.getActorsListToNotify(scenario.id, action.id), message);
                 break;
             case "sendglobalmessage":
-                const service: Services[] = await svc.getServicesByIds([message.service.id]);
-                await sendGlobalMessage(service[0], highestPriorityStateValue, message.status);
+                // TODO: APICASH IS FOR EXTERNAL OBJECTS THAT DEPENDS ON SERVICES,
+                // * NEED TO RETHINK THE WAY OF WORKING OF THIS MESSAGE
+                // const service: Services[] = await svc.getServicesByIds([message.service.id]);
+                // await sendGlobalMessage(service[0], highestPriorityStateValue, message.status[1]);
                 break;
             case "reboot":
                 const server: Servers[] = await s.getServersByIds([message.server.id]);

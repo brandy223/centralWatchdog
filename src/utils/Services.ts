@@ -1,5 +1,7 @@
 
 // DATABASE
+import {PingTemplate} from "../templates/DataTemplates";
+
 const s = require("./database/Servers");
 
 const Network = require("./Network");
@@ -19,9 +21,9 @@ const Template = require("../templates/DataTemplates");
  * @throws {Error} If the pingInfo is empty
  * @throws {Error} If the server is not found in the database
  */
-export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[]): JSON {
+export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[]): PingTemplate {
     if (pingInfo.length === 0) throw new Error("Ping info is empty");
-    return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo).toJSON();
+    return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo);
 }
 
 /**
@@ -49,7 +51,7 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
                 }
                 const server: Servers = await s.getServerByIP(serverIP);
                 if (server === null) throw new Error("Server not found in database");
-                const messageToSend = await makeServerPingJSON(
+                const messageToSend: PingTemplate = await makeServerPingJSON(
                     {
                         "id": server.id,
                         "ipAddr": server.ipAddr,

@@ -30,17 +30,18 @@ interface Email {
     html: string;
 }
 
+import { PingTemplate, ServiceTestTemplate } from "../templates/DataTemplates";
+
 let lastEmailSent = new Map<number, number>;
 
 /**
  * Send email to a list of actors
  * @param {Actors[]} actors The actors to send the email to
- * @param {number} typeOfMessage The type of message
- * @param {any} data The data to send
+ * @param {PingTemplate | ServiceTestTemplate} message The type of message
  * @returns {Promise<void>}
  * @throws {Error} If the list of actors is empty
  */
-export async function main(actors: Actors[], typeOfMessage: number, data: any) : Promise<void> {
+export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
     for (const actor of actors) {
@@ -54,52 +55,56 @@ export async function main(actors: Actors[], typeOfMessage: number, data: any) :
             continue;
         }
         lastEmailSent.set(actor.id, Date.now());
-        await email(actor.email, typeOfMessage, data);
+        await email(actor.email, message);
     }
 }
 
 /**
  * Main function to send an email
  * @param {string} to The email receiver
- * @param {number} typeOfMessage The type of message
- * @param {any} data The data to send
+ * @param {PingTemplate | ServiceTestTemplate} message The type of message
  * @returns {Promise<void>}
  * @throws {Error} If the email is not valid
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
-export async function email(to: string, typeOfMessage: number, data: any): Promise<void> {
+export async function email(to: string, message: PingTemplate | ServiceTestTemplate): Promise<void> {
     if (!validator.validate(to)) throw new Error("Email is not valid");
-    const emailToSend = await emailConstructor(to, typeOfMessage, data);
+    const emailToSend = await emailConstructor(to, message);
     await sendEmail(emailToSend);
 }
 
 /**
  * Email constructor
  * @param {string} email
- * @param {number} typeOfMessage
- * @param {any} data
+ * @param {PingTemplate | ServiceTestTemplate} message The type of message
  * @returns {Promise<Email>}
  * @throws {Error} If the type of message is not valid
  */
-async function emailConstructor(email: string, typeOfMessage: number, data: any): Promise<Email> {
+async function emailConstructor(email: string, message: PingTemplate | ServiceTestTemplate): Promise<Email> {
     let subject: string = "";
     let text: string = "";
     let html: string = "";
+    let data: string = "";
 
-    switch (typeOfMessage) {
+    switch (message.messageType) {
         // SERVER PING
-        case 0:
-            subject = `Server ${data.server.ipAddr} is ${data.status}`;
-            console.log(data);
-            data.statusInfo.shift()
-            text = `Server ${data.server.ipAddr} is ${data.status}<br><u>More info:</u> ${data.statusInfo}`;
-            html = `<h3>${subject}</h3><p>${text}</p>`;
+        case 1:
+            if (message instanceof PingTemplate) {
+                data = message.pingInfo.join(", ");
+                subject = `Server ${message.server.ip} is ${message.status}`;
+                text = `Server ${message.server.ip} is ${message.status}<br><u>More info:</u> ${data}`;
+                html = `<h3>${subject}</h3><p>${text}</p>`;
+            }
             break;
         // SERVICE TEST
-        case 1:
-           subject = `Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}`;
-            text = `Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}\nMore info: ${data.statusInfo}`;
-            html = `<h3>Service ${data.service.name} on server ${data.server.ipAddr} is ${data.status}</h3>`;
+        case 2:
+            if (message instanceof ServiceTestTemplate) {
+                data = message.status[1];
+                const status: string = message.status[1] === "true" ? "active" : "inactive";
+                subject = `Service ${message.service.name}'s status on Server ${message.server.ip} is ${status}`;
+                text = `Service ${message.service.name}'s status on Server ${message.server.ip} is ${message.status[1]}<br><u>More info:</u> ${data}`;
+                html = `<h3>${subject}</h3><p>${text}</p>`;
+            }
             break;
         default:
             throw new Error("Type of message is not valid");
