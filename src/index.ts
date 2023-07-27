@@ -27,7 +27,7 @@ const NodeCache = require("node-cache");
 export const cache = new NodeCache({
     stdTTL: 30,
     checkperiod: 60,
-    deleteOnExpire: true,
+    deleteOnExpire: true
 });
 
 app.use(express.json());

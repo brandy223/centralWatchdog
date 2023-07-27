@@ -80,6 +80,7 @@ export async function getMessage(messageId: number): Promise<any> {
         connection.query("SELECT * FROM m_apicash_message WHERE mes_id = ?", [messageId], (err: any, result: any) => {
             if (err) reject(err);
             console.log(theme.success("Message retrieved successfully : " + JSON.stringify(result)));
+            console.log(result);
 
             resolve({
                 mes_id: result[0].mes_id,

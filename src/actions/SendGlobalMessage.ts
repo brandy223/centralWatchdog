@@ -1,6 +1,5 @@
-import {Servers, ServiceObjects, Services} from "@prisma/client";
+import {ServiceObjects, Services} from "@prisma/client";
 import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
-import {getServicesOfServerById} from "../utils/database/Services";
 import {theme} from "../utils/ColorScheme";
 
 // DATABASE
@@ -8,7 +7,6 @@ const apiCash = require("../utils/database/ApiCash");
 const sv = require("../utils/database/Services");
 const o = require("../utils/database/ServiceObject");
 
-const cache = require("../index").cache;
 const arrayUtils = require("../utils/utilities/Array");
 
 type Message = {
@@ -29,6 +27,7 @@ type Message = {
  * @returns {Promise<void>}
  */
 export async function main (inCacheName: string, messageContent: string, scenarioPriority: number) : Promise<void> {
+    const cache = require("../index").cache;
     const cachedMessage: Message | undefined = cache.get(inCacheName);
 
     if (cachedMessage === undefined) {
@@ -104,7 +103,7 @@ export async function createInCacheNameAndMessageContent (message: (PingTemplate
         case 2:
             if (message instanceof ServiceTestTemplate) {
                 inCacheName = `${message.service.name}_apiCash_message_${scenarioPriority}`;
-                const objectsNames: string[] = await o.getServiceObjectsOfServiceById(message.service.id).map((object: ServiceObjects) => object.name);
+                const objectsNames: string[] = (await o.getServiceObjectsOfServiceById(message.service.id)).map((object: ServiceObjects) => object.name);
                 messageContent = `Le service ${message.service.name} est injoignable. Les objets suivants sont impactés : ${objectsNames.join(", ")}`;
                 //? TODO: implement state value description ??
             }
