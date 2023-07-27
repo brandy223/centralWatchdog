@@ -88,7 +88,7 @@ export async function main (inCacheName: string, messageContent: string, scenari
  * @param { number } scenarioPriority the priority of the scenario
  * @returns { string[] } the inCache name and message content
  */
-export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | ServiceObjectTemplate), scenarioPriority: number) : string[] {
+export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | ServiceObjectTemplate), scenarioPriority: number) : Promise<string[]> {
     let inCacheName: string = "";
     let messageContent: string = "";
 

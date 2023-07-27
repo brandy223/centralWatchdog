@@ -68,7 +68,7 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
                 break;
             case "sendglobalmessage":
                 //* Essentially for services objects
-                const globalMessageInfo: string[] = gm.createInCacheNameAndMessageContent(message, highestPriorityStateValue);
+                const globalMessageInfo: string[] = await gm.createInCacheNameAndMessageContent(message, highestPriorityStateValue);
                 await gm.main(globalMessageInfo[0], globalMessageInfo[1], highestPriorityStateValue);
                 break;
             case "reboot":
