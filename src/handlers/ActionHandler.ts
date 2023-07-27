@@ -12,24 +12,40 @@ const dbActors = require("../utils/database/Actors");
 import { stateValuesHandler } from "./StateValuesHandler";
 const sendEmail = require("../actions/SendEmail").main;
 const sendMessage = require("../actions/SendMessage").main;
-const sendGlobalMessage = require("../actions/SendGlobalMessage").main;
+const gm = require("../actions/SendGlobalMessage");
 const MapUtils = require("../utils/utilities/Map");
 
 import {theme} from "../utils/ColorScheme";
 import {isItTheGoodTime} from "../actions/Utilities";
 
-import { PingTemplate, ServiceTestTemplate } from "../templates/DataTemplates";
+import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
 
 /**
  * Parse message from server and execute the corresponding action
  * @param {PingTemplate | ServiceTestTemplate} message Message to parse
  * @return {Promise<void>}
  */
-export async function actionHandler(message: (PingTemplate | ServiceTestTemplate)): Promise<void> {
+export async function actionHandler(message: (PingTemplate | ServiceTestTemplate | ServiceObjectTemplate)): Promise<void> {
     let stateValues: StateValues[] = [];
 
-    if (message instanceof PingTemplate && message.messageType === 1) stateValues = await sv.getServerStateValues(message.server.id);
-    else if (message instanceof ServiceTestTemplate && message.messageType === 2) stateValues = await sv.getJobStateValues(message.job.id);
+    switch(message.messageType) {
+        case 1:
+            if (message instanceof PingTemplate)
+                stateValues = await sv.getServerStateValues(message.server.id);
+            break;
+        case 2:
+            if (message instanceof ServiceTestTemplate)
+                stateValues = await sv.getJobStateValues(message.job.id);
+            break;
+        case 3:
+            // TODO: TO BE IMPLEMENTED
+            break;
+        case 4:
+            if (message instanceof ServiceObjectTemplate)
+                stateValues = await sv.getObjectStateValues(message.serviceObject.id);
+            break;
+    }
+
     if (stateValues.length === 0) return;
 
     const stateValuesMap = await stateValuesHandler(message, stateValues);
@@ -51,13 +67,12 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
                 await sendMessage(await dbActors.getActorsListToNotify(scenario.id, action.id), message);
                 break;
             case "sendglobalmessage":
-                // TODO: APICASH IS FOR EXTERNAL OBJECTS THAT DEPENDS ON SERVICES,
-                // * NEED TO RETHINK THE WAY OF WORKING OF THIS MESSAGE
-                // const service: Services[] = await svc.getServicesByIds([message.service.id]);
-                // await sendGlobalMessage(service[0], highestPriorityStateValue, message.status[1]);
+                //* Essentially for services objects
+                const globalMessageInfo: string[] = gm.createInCacheNameAndMessageContent(message, highestPriorityStateValue);
+                await gm.main(globalMessageInfo[0], globalMessageInfo[1], highestPriorityStateValue);
                 break;
             case "reboot":
-                const server: Servers[] = await s.getServersByIds([message.server.id]);
+                // const server: Servers[] = await s.getServersByIds([message.server.id]);
                 // await reboot(server.ipAddr, process.env.SSH_USER);
                 break;
             default:

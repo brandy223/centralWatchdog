@@ -9,12 +9,15 @@ const theme = require('../utils/ColorScheme').theme;
  */
 export async function messageHandler(message: any): Promise<void> {
     switch (Number(message.messageType)) {
-        case 1: // PING
-        case 2: // SERVICE
+        case 1: //*  PING
+        case 2: //*  SERVICE
             await actionHandler(message);
             break;
-        // Main Central Server Down
-        case -1:
+        case 3: //*  PfSense
+            break;
+        case 4: //*  Services values (Tâches compta, ...)
+            break;
+        case -1: //* Main Central Server Down
             break
         default:
             console.log(theme.error("Unknown message type"));

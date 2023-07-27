@@ -4,7 +4,7 @@ import { Actors } from "@prisma/client";
 const axios = require('axios').default;
 const { theme } = require("../utils/ColorScheme");
 
-import { PingTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
 
 let lastMessageSent = new Map<number, number>;
 
@@ -15,7 +15,7 @@ let lastMessageSent = new Map<number, number>;
  * @returns {Promise<void>}
  * @throws {Error} If the list of actors is empty
  */
-export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate) : Promise<void> {
+export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceObjectTemplate) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
     for (const actor of actors) {
@@ -37,6 +37,9 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
                 break;
             case 2:
                 if (message instanceof ServiceTestTemplate) messageContent = `Problem with Service : ${message.service.name} on Server : ${message.server.ip} ! More info in mail.`;
+                break;
+            case 4:
+                // TODO: TO BE IMPLEMENTED
                 break;
             default:
                 console.log(theme.error("Unknown message type"));

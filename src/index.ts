@@ -17,7 +17,7 @@ const { messageHandler } = require('./handlers/MessageHandler');
 
 import { Jobs, Servers, ServersOfJobs } from "@prisma/client";
 import {Socket} from "socket.io";
-import { PingTemplate, ServiceTestTemplate } from "./templates/DataTemplates";
+import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "./templates/DataTemplates";
 
 const express = require('express');
 const app = express();
@@ -86,13 +86,19 @@ async function main(): Promise<void> {
             // Message Parsing
             switch (message.messageType) {
                 case 1:
-                    // Object.assign(PingTemplate, message);
                     const refactoredPingMessage: PingTemplate = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
                     await messageHandler(refactoredPingMessage);
                     break;
                 case 2:
                     const refactoredServiceMessage: ServiceTestTemplate = new ServiceTestTemplate(message.service.id, message.service.name, message.server.id, message.server.ip, message.job.id, message.status);
                     await messageHandler(refactoredServiceMessage);
+                    break;
+                case 3:
+                    // TODO: TO BE IMPLEMENTED
+                    break;
+                case 4:
+                    const refactoredObjectMessage: ServiceObjectTemplate = new ServiceObjectTemplate(message.object.id, message.object.name, message.object.value, message.object.status);
+                    await messageHandler(refactoredObjectMessage);
                     break;
             }
             // await messageHandler(message);
