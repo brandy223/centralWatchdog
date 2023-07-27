@@ -3,6 +3,7 @@ import { StateValues } from '@prisma/client';
 
 const s = require("./Servers");
 const j = require("./Jobs");
+const so = require("./ServiceObject");
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient(
@@ -39,4 +40,15 @@ export async function getServerStateValues (id: number) : Promise<StateValues[]>
 export async function getJobStateValues (id: number) : Promise<StateValues[]> {
     if ((await j.getJobById(id)) === null) throw new Error("Job is not in database");
     return prisma.stateValues.findMany({where: {jobId: id}});
+}
+
+/**
+ * Get all the state values of an object
+ * @param {number} id The id of the object
+ * @returns {Promise<StateValues[]>} The state values of the object
+ * @throws {Error} If the object is not in the database
+ */
+export async function getObjectStateValues (id: number) : Promise<StateValues[]> {
+    if ((await so.getServiceObjectsByIds([id])) === null) throw new Error("Object is not in database");
+    return prisma.stateValues.findMany({where: {objectId: id}});
 }
