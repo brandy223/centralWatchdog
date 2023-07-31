@@ -15,7 +15,7 @@ model Services {
   id      Int                  @id @default(autoincrement())
   name    String               @db.VarChar(255)
   port    Int?                 @db.MediumInt
-  type    Int?                 @db.TinyInt @default(0)
+  type    Int                  @db.TinyInt @default(0)
   servers ServicesOfServers[]
   objects ServicesAndObjects[]
   datas   ServicesAndData[]
