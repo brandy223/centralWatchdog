@@ -37,7 +37,7 @@ export async function createMessage(messageContent: string): Promise<any> {
  * @throws {Error} If an error occurred while updating the message content
  */
 export async function updateMessageContent(messageId: number, messageContent: string): Promise<void> {
-    connection.query("UPDATE m_apicash_message SET mess_content = ? WHERE mes_id = ?", [messageContent, messageId], (err: any, result: any) => {
+    connection.query("UPDATE m_apicash_message SET mess_content = ? WHERE mess_id = ?", [messageContent, messageId], (err: any, result: any) => {
         if (err) throw err;
         console.log(theme.success("Message content updated successfully : " + JSON.stringify(result)));
     });
@@ -51,7 +51,7 @@ export async function updateMessageContent(messageId: number, messageContent: st
  * @throws {Error} If an error occurred while updating the message end date
  */
 export async function updateMessageEndDate(messageId: number, messageEndDate: Date): Promise<void> {
-    connection.query("UPDATE m_apicash_message SET mess_end = ? WHERE mes_id = ?", [messageEndDate.getTime() / 1000, messageId], (err: any, result: any) => {
+    connection.query("UPDATE m_apicash_message SET mess_end = ? WHERE mess_id = ?", [messageEndDate.getTime() / 1000, messageId], (err: any, result: any) => {
         if (err) throw err;
         console.log(theme.success("Message end date updated successfully : " + JSON.stringify(result)));
     });
@@ -63,7 +63,7 @@ export async function updateMessageEndDate(messageId: number, messageEndDate: Da
  * @returns {Promise<void>}
  */
 export async function deleteMessage(messageId: number): Promise<void> {
-    connection.query("DELETE FROM m_apicash_message WHERE mes_id = ?", [messageId], (err: any, result: any): void => {
+    connection.query("DELETE FROM m_apicash_message WHERE mess_id = ?", [messageId], (err: any, result: any): void => {
         if (err) throw err;
         console.log(theme.success("Message deleted successfully : " + JSON.stringify(result)));
     });
@@ -77,13 +77,12 @@ export async function deleteMessage(messageId: number): Promise<void> {
  */
 export async function getMessage(messageId: number): Promise<any> {
     return new Promise((resolve, reject): void => {
-        connection.query("SELECT * FROM m_apicash_message WHERE mes_id = ?", [messageId], (err: any, result: any) => {
+        connection.query("SELECT * FROM m_apicash_message WHERE mess_id = ?", [messageId], (err: any, result: any) => {
             if (err) reject(err);
             console.log(theme.success("Message retrieved successfully : " + JSON.stringify(result)));
-            console.log(result);
 
             resolve({
-                mes_id: result[0].mes_id,
+                mess_id: result[0].mess_id,
                 mess_content: result[0].mess_content,
                 mess_begin: result[0].mess_begin,
                 mess_end: result[0].mess_end,
