@@ -81,7 +81,7 @@ model ServicesData {
   description    String?           @db.VarChar(255)
   isUrlInService Boolean           @default(false)
   url            String?           @db.VarChar(255)
-  nameInRequest  String?           @db.VarChar(255)
+  nameInResponse String?           @db.VarChar(255)
   services       ServicesAndData[]
   stateValues    StateValues[]
 }
