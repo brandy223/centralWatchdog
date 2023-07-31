@@ -18,6 +18,7 @@ model Services {
   type    Int?                 @db.TinyInt @default(0)
   servers ServicesOfServers[]
   objects ServicesAndObjects[]
+  datas   ServicesAndData[]
 }
 
 enum ServerStatus {
@@ -58,22 +59,39 @@ model ServersOfJobs {
   @@id([serverId, jobId])
 }
 
-model ServiceObjects {
+model ServicesObjects {
   id          Int                  @id @default(autoincrement())
   name        String               @db.VarChar(255)
   description String?              @db.VarChar(255)
-  url         String?              @db.VarChar(255)
   services    ServicesAndObjects[]
-  stateValues StateValues[]
 }
 
 model ServicesAndObjects {
   serviceId Int
   objectId  Int
-  service   Services       @relation(fields: [serviceId], references: [id])
-  object    ServiceObjects @relation(fields: [objectId], references: [id])
+  service   Services        @relation(fields: [serviceId], references: [id])
+  object    ServicesObjects @relation(fields: [objectId], references: [id])
 
   @@id([serviceId, objectId])
+}
+
+model ServicesData {
+  id             Int               @id @default(autoincrement())
+  name           String            @db.VarChar(255)
+  description    String?           @db.VarChar(255)
+  isUrlInService Boolean           @default(false)
+  url            String?           @db.VarChar(255)
+  services       ServicesAndData[]
+  stateValues    StateValues[]
+}
+
+model ServicesAndData {
+  serviceId Int
+  dataId    Int
+  service   Services     @relation(fields: [serviceId], references: [id])
+  data      ServicesData @relation(fields: [dataId], references: [id])
+
+  @@id([serviceId, dataId])
 }
 
 model Jobs {
@@ -86,20 +104,20 @@ model Jobs {
 }
 
 model StateValues {
-  id          Int             @id @default(autoincrement())
-  name        String          @db.VarChar(255)
-  description String?         @db.VarChar(255)
-  value       String          @db.VarChar(255)
-  typeOfValue Int             @db.TinyInt
-  priority    Int             @db.TinyInt
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(255)
+  description String?       @db.VarChar(255)
+  value       String        @db.VarChar(255)
+  typeOfValue Int           @db.TinyInt
+  priority    Int           @db.TinyInt
   jobId       Int?
   serverId    Int?
   scenarioId  Int
-  objectId    Int?
-  job         Jobs?           @relation(fields: [jobId], references: [id])
-  server      Servers?        @relation(fields: [serverId], references: [id])
-  scenario    Scenarios       @relation(fields: [scenarioId], references: [id])
-  object      ServiceObjects? @relation(fields: [objectId], references: [id])
+  dataId      Int?
+  job         Jobs?         @relation(fields: [jobId], references: [id])
+  server      Servers?      @relation(fields: [serverId], references: [id])
+  scenario    Scenarios     @relation(fields: [scenarioId], references: [id])
+  data        ServicesData? @relation(fields: [dataId], references: [id])
 }
 
 model Scenarios {
