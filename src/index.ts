@@ -1,3 +1,4 @@
+import {getAllServicesData} from "./utils/database/ServiceData";
 
 const events = require('events');
 export const eventEmitter = new events.EventEmitter();
@@ -6,18 +7,23 @@ dotenv.config();
 
 // DATABASE
 const s = require('./utils/database/Servers');
+const se = require('./utils/database/Services');
 const j = require('./utils/database/Jobs');
+const so = require('./utils/database/ServiceObject');
+const sd = require('./utils/database/ServiceData');
 const misc = require('./utils/database/Misc');
 
 const ServicesUtils = require('./utils/Services');
+const Timer = require('./utils/Timer');
 const ArrayUtils = require('./utils/utilities/Array');
 const theme = require('./utils/ColorScheme').theme;
 const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessage;
 const { messageHandler } = require('./handlers/MessageHandler');
 
-import { Jobs, Servers, ServersOfJobs } from "@prisma/client";
+import {Jobs, Servers, ServersOfJobs, Services, ServicesData} from "@prisma/client";
 import {Socket} from "socket.io";
-import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "./templates/DataTemplates";
+import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "./templates/DataTemplates";
+import {getServicesByType} from "./utils/database/Services";
 
 const express = require('express');
 const app = express();
@@ -64,6 +70,19 @@ async function main(): Promise<void> {
     let checkOnServer = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
     const socketListenersMap: Map<Socket, (data: any) => void> = new Map();
 
+    // SERVICES DATA
+
+    // NON GROUPED
+    // ? Is it really useful ?
+    // let servicesData: ServicesData[] = (await sd.getAllServicesData()).filter((serviceData: ServicesData) => (serviceData.url !== null || serviceData.url !== ""));
+    // let servicesDataWrapper: any[] = await ServicesUtils.getServiceDataValueFunctionsInArray(servicesData);
+    // let servicesDataTasks: any[] = await Timer.executeTimedTask(servicesDataWrapper, [5000]);
+
+    // GROUPED
+    let dataServices: Services[] = await se.getServicesByType(1);
+    let servicesGroupedDataWrapper: any[] = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(dataServices);
+    let servicesGroupedDataTasks: any[] = await Timer.executeTimedTask(servicesGroupedDataWrapper, [5000]);
+
     io.on("error", () => {
         console.log(theme.error("Error"));
     });
@@ -73,6 +92,11 @@ async function main(): Promise<void> {
             socket.to("main").emit("room_broadcast", message);
         }
         socketListenersMap.set(socket, serverNotConnectedListener);
+
+        const serviceDataValueListener = (message: any) => {
+            socket.to("main").emit("room_broadcast", message);
+        }
+        socketListenersMap.set(socket, serviceDataValueListener);
 
         const connectedServerIp: string = socket.handshake.address.substring(7);
         serverConnectionsInfo.set(connectedServerIp, [((Array.from(serverConnectionsInfo.get(connectedServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
@@ -97,7 +121,7 @@ async function main(): Promise<void> {
                     // TODO: TO BE IMPLEMENTED
                     break;
                 case 4:
-                    const refactoredObjectMessage: ServiceObjectTemplate = new ServiceObjectTemplate(message.object.id, message.object.name, message.object.value, message.object.status);
+                    const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.object.id, message.object.name, message.object.value, message.object.status);
                     await messageHandler(refactoredObjectMessage);
                     break;
             }
@@ -129,6 +153,7 @@ async function main(): Promise<void> {
         });
 
         eventEmitter.on("server_not_connected_state", serverNotConnectedListener);
+        eventEmitter.on("service_data_state_broadcast", serviceDataValueListener);
     });
 
     server.listen(process.env.SERVER_PORT, (): void => {

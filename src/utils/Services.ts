@@ -1,14 +1,18 @@
 
 // DATABASE
-import {PingTemplate} from "../templates/DataTemplates";
+import {PingTemplate, ServiceDataTemplate} from "../templates/DataTemplates";
+import {AxiosResponse} from "axios";
+const axios = require('axios');
 
 const s = require("./database/Servers");
+const sd = require("./database/ServiceData");
 
 const Network = require("./Network");
 const theme = require("./ColorScheme").theme;
 const eventEmitter = require("../index").eventEmitter;
 
-import { Servers } from "@prisma/client";
+import {Servers, ServicesData, Services} from "@prisma/client";
+import {cachedDataVersionTag} from "v8";
 
 const Template = require("../templates/DataTemplates");
 
@@ -17,13 +21,25 @@ const Template = require("../templates/DataTemplates");
  * @param {Servers} server The server object
  * @param {string} status The status of the server
  * @param {string[]} pingInfo Information about the ping
- * @returns {JSON} The JSON object
+ * @returns {PingTemplate} The JSON object
  * @throws {Error} If the pingInfo is empty
- * @throws {Error} If the server is not found in the database
  */
 export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[]): PingTemplate {
     if (pingInfo.length === 0) throw new Error("Ping info is empty");
     return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo);
+}
+
+/**
+ * Make a JSON object that contains the id of the service object, its name its status and its value
+ * @param {ServicesData} serviceObject The service object
+ * @param {string[]} status The status of the service object
+ * @param {number | string} value The value of the service object
+ * @returns {ServiceDataTemplate} The JSON object
+ * @throws {Error} If the status is empty
+ */
+export function makeServiceDataJSON (serviceObject: ServicesData, status: string[], value: number | string): ServiceDataTemplate {
+    if (status.length === 0) throw new Error("Status is empty");
+    return new Template.ServiceDataTemplate(serviceObject.id, serviceObject.name, value, status);
 }
 
 /**
@@ -66,4 +82,71 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
             }
         }
     }, Number(process.env.SERVERS_CHECK_PERIOD));
+}
+
+/**
+ *
+ * @param objects
+ */
+export async function getServiceDataValueFunctionsInArray(objects: ServicesData[]): Promise<any[]> {
+    if (objects.length === 0) {
+        console.log(theme.warning("No service objects found"));
+        // TODO: need to verify in index main file when this happens
+        return [];
+    }
+    const getServiceObjectValueFunctions: (() => void)[] = [];
+    for (const obj of objects) {
+        const serviceObject = (obj: ServicesData): (() => void) => {
+            return async (): Promise<void> => {
+                if (obj.url === null || obj.url === "") return;
+                const axiosRes: AxiosResponse = await axios.get(obj.url);
+                console.log(axiosRes.data);
+                const status: string[] = [axiosRes.status === 200 ? "OK" : "KO"];
+                // ADD Another line depending on state value ??
+                const res: ServiceDataTemplate = await makeServiceDataJSON(obj, status, axiosRes.data);
+                eventEmitter.emit("service_data_state_broadcast", res);
+                console.log(theme.bgInfo("Message to be send in broadcast : "));
+                console.log(res);
+            }
+        }
+        const serviceObjectFunction = serviceObject(obj);
+        getServiceObjectValueFunctions.push(serviceObjectFunction);
+    }
+    return getServiceObjectValueFunctions;
+}
+
+export async function getServiceDataValueFromServiceFunctionsInArray(services: Services[]): Promise<any[]> {
+    if (services.length === 0) {
+        console.log(theme.warning("No services found"));
+        // TODO: need to verify in index main file when this happens
+        return [];
+    }
+    const getServiceDataValueFunctions: (() => void)[] = [];
+    for (const s of services) {
+        const service = (service: Services): (() => void) => {
+            return async (): Promise<void> => {
+                const servicesDatas: ServicesData[] = await sd.getServicesDataByServiceId(service.id);
+                if (servicesDatas.length === 0) return;
+                if (service.url === null || service.url === "") return;
+
+                const axiosRes: AxiosResponse = await axios.get(service.url);
+                // ? ADD Another line depending on state value ??
+                const status: string[] = [axiosRes.status === 200 ? "OK" : "KO"];
+
+                for (const serviceData of servicesDatas) {
+                    for (const propertyName in axiosRes.data) {
+                        // Assign value to service data
+                        if (serviceData.nameInResponse !== propertyName) continue;
+                        const res: ServiceDataTemplate = await makeServiceDataJSON(serviceData, status, axiosRes.data[propertyName]);
+                        eventEmitter.emit("service_data_state_broadcast", res);
+                        console.log(theme.bgInfo("Message to be send in broadcast : "));
+                        console.log(res);
+                    }
+                }
+            }
+        }
+        const serviceObjectFunction = service(s);
+        getServiceDataValueFunctions.push(serviceObjectFunction);
+    }
+    return getServiceDataValueFunctions;
 }

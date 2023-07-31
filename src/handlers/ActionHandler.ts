@@ -18,14 +18,18 @@ const MapUtils = require("../utils/utilities/Map");
 import {theme} from "../utils/ColorScheme";
 import {isItTheGoodTime} from "../actions/Utilities";
 
-import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {
+    PingTemplate,
+    ServiceDataTemplate,
+    ServiceTestTemplate
+} from "../templates/DataTemplates";
 
 /**
  * Parse message from server and execute the corresponding action
- * @param {PingTemplate | ServiceTestTemplate} message Message to parse
+ * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message Message to parse
  * @return {Promise<void>}
  */
-export async function actionHandler(message: (PingTemplate | ServiceTestTemplate | ServiceObjectTemplate)): Promise<void> {
+export async function actionHandler(message: (PingTemplate | ServiceTestTemplate | ServiceDataTemplate)): Promise<void> {
     let stateValues: StateValues[] = [];
 
     switch(message.messageType) {
@@ -41,8 +45,8 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
             // TODO: TO BE IMPLEMENTED
             break;
         case 4:
-            if (message instanceof ServiceObjectTemplate)
-                stateValues = await sv.getObjectStateValues(message.serviceObject.id);
+            if (message instanceof ServiceDataTemplate)
+                stateValues = await sv.getObjectStateValues(message.serviceData.id);
             break;
     }
 

@@ -1,5 +1,9 @@
-import {ServiceObjects, Services} from "@prisma/client";
-import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {Services, ServicesObjects} from "@prisma/client";
+import {
+    PingTemplate,
+    ServiceDataTemplate,
+    ServiceTestTemplate
+} from "../templates/DataTemplates";
 import {theme} from "../utils/ColorScheme";
 
 // DATABASE
@@ -83,11 +87,11 @@ export async function main (inCacheName: string, messageContent: string, scenari
 
 /**
  * Create the inCache name for the message and its content
- * @param { PingTemplate | ServiceTestTemplate | ServiceObjectTemplate } message the message that contains the information
+ * @param { PingTemplate | ServiceTestTemplate | ServiceDataTemplate } message the message that contains the information
  * @param { number } scenarioPriority the priority of the scenario
  * @returns { string[] } the inCache name and message content
  */
-export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | ServiceObjectTemplate), scenarioPriority: number) : Promise<string[]> {
+export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | ServiceDataTemplate), scenarioPriority: number) : Promise<string[]> {
     let inCacheName: string = "";
     let messageContent: string = "";
 
@@ -103,7 +107,7 @@ export async function createInCacheNameAndMessageContent (message: (PingTemplate
         case 2:
             if (message instanceof ServiceTestTemplate) {
                 inCacheName = `${message.service.name}_apiCash_message_${scenarioPriority}`;
-                const objectsNames: string[] = (await o.getServiceObjectsOfServiceById(message.service.id)).map((object: ServiceObjects) => object.name);
+                const objectsNames: string[] = (await o.getServiceObjectsOfServiceById(message.service.id)).map((object: ServicesObjects) => object.name);
                 messageContent = `Le service ${message.service.name} est injoignable. Les objets suivants sont impactés : ${objectsNames.join(", ")}`;
                 //? TODO: implement state value description ??
             }
@@ -112,8 +116,8 @@ export async function createInCacheNameAndMessageContent (message: (PingTemplate
             // TODO: TO BE IMPLEMENTED
             break;
         case 4:
-            if (message instanceof ServiceObjectTemplate) {
-                inCacheName = `${message.serviceObject.name}_apiCash_message_${scenarioPriority}`;
+            if (message instanceof ServiceDataTemplate) {
+                inCacheName = `${message.serviceData.name}_apiCash_message_${scenarioPriority}`;
                 messageContent = `UNDEFINED`;
                 // TODO: Define message content HERE
             }

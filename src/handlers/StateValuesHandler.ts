@@ -2,15 +2,15 @@
 import {StateValues} from "@prisma/client";
 
 import {theme} from "../utils/ColorScheme";
-import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
 
 /**
  * Parse message from server and execute the corresponding action
- * @param {PingTemplate | ServiceTestTemplate} message Message to parse
+ * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message Message to parse
  * @param stateValues State values to check
  * @returns {Promise<Map>}
  */
-export async function stateValuesHandler(message: PingTemplate | ServiceTestTemplate | ServiceObjectTemplate, stateValues: StateValues[]): Promise<Map<number, [boolean, number]>> {
+export async function stateValuesHandler(message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValues: StateValues[]): Promise<Map<number, [boolean, number]>> {
     const stateValuesMap = new Map<number, [boolean, number]>();
 
     for (const stateValue of stateValues) {

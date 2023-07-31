@@ -30,18 +30,18 @@ interface Email {
     html: string;
 }
 
-import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
 
 let lastEmailSent = new Map<number, number>;
 
 /**
  * Send email to a list of actors
  * @param {Actors[]} actors The actors to send the email to
- * @param {PingTemplate | ServiceTestTemplate} message The type of message
+ * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
  * @returns {Promise<void>}
  * @throws {Error} If the list of actors is empty
  */
-export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceObjectTemplate) : Promise<void> {
+export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
     for (const actor of actors) {
@@ -62,12 +62,12 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
 /**
  * Main function to send an email
  * @param {string} to The email receiver
- * @param {PingTemplate | ServiceTestTemplate} message The type of message
+ * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
  * @returns {Promise<void>}
  * @throws {Error} If the email is not valid
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
-export async function email(to: string, message: PingTemplate | ServiceTestTemplate | ServiceObjectTemplate): Promise<void> {
+export async function email(to: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate): Promise<void> {
     if (!validator.validate(to)) throw new Error("Email is not valid");
     const emailToSend = await emailConstructor(to, message);
     await sendEmail(emailToSend);
@@ -76,11 +76,11 @@ export async function email(to: string, message: PingTemplate | ServiceTestTempl
 /**
  * Email constructor
  * @param {string} email
- * @param {PingTemplate | ServiceTestTemplate} message The type of message
+ * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
  * @returns {Promise<Email>}
  * @throws {Error} If the type of message is not valid
  */
-async function emailConstructor(email: string, message: PingTemplate | ServiceTestTemplate | ServiceObjectTemplate): Promise<Email> {
+async function emailConstructor(email: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate): Promise<Email> {
     let subject: string = "";
     let text: string = "";
     let html: string = "";

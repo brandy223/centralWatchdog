@@ -1,18 +1,18 @@
 interface Server {
-    id: number;
-    ip: string;
+    id: number,
+    ip: string
 }
 
 interface Service {
-    id: number;
-    name: string;
+    id: number,
+    name: string
 }
 
 interface Job {
-    id: number;
+    id: number
 }
 
-interface ServiceObject {
+interface ServiceData {
     id: number,
     name: string,
 }
@@ -50,15 +50,15 @@ export class ServiceTestTemplate {
 // PFSENSE
 // MESSAGE TYPE 3
 
-export class ServiceObjectTemplate {
+export class ServiceDataTemplate {
     messageType: number;
-    serviceObject: ServiceObject;
+    serviceData: ServiceData;
     value: number | string;
-    status: string[] | null;
+    status: string[];
 
-    constructor(serviceObjectId: number, serviceObjectName: string, value: number | string, status: string[] | null) {
+    constructor(serviceDataId: number, serviceDataName: string, value: number | string, status: string[]) {
         this.messageType = 4;
-        this.serviceObject = { id: serviceObjectId, name: serviceObjectName };
+        this.serviceData = { id: serviceDataId, name: serviceDataName };
         this.value = value;
         this.status = status;
     }

@@ -4,18 +4,18 @@ import { Actors } from "@prisma/client";
 const axios = require('axios').default;
 const { theme } = require("../utils/ColorScheme");
 
-import {PingTemplate, ServiceObjectTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
 
 let lastMessageSent = new Map<number, number>;
 
 /**
  * Send message to a list of actors
  * @param {Actors[]} actors The actors to send the message to
- * @param {PingTemplate | ServiceTestTemplate} message The message content
+ * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The message content
  * @returns {Promise<void>}
  * @throws {Error} If the list of actors is empty
  */
-export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceObjectTemplate) : Promise<void> {
+export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
     for (const actor of actors) {

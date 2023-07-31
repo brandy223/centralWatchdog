@@ -28,3 +28,12 @@ export async function getServicesOfServerById (id: number) : Promise<Services[]>
     const services: ServicesOfServers[] = await prisma.servicesOfServers.findMany({where: {serverId: id}});
     return getServicesByIds(services.map((service: ServicesOfServers) => service.serviceId));
 }
+
+/**
+ * Get services by type
+ * @param {number} type The type of the services
+ * @returns {Promise<Services[]>} The services
+ */
+export async function getServicesByType (type: number) : Promise<Services[]> {
+    return prisma.services.findMany({where: {type: type}});
+}
