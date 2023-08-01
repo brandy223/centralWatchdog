@@ -21,6 +21,7 @@ import {
     ServiceDataTemplate,
     ServiceTestTemplate
 } from "../templates/DataTemplates";
+import {reboot} from "../actions/Reboot";
 
 /**
  * Parse message from server and execute the corresponding action
@@ -78,8 +79,14 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
                 await gm.main(globalMessageInfo[0], globalMessageInfo[1], highestPriorityStateValue);
                 break;
             case "reboot":
+                let serverIp: string = ""
+                if (message instanceof PingTemplate) serverIp = message.server.ip;
+                else if (message instanceof ServiceTestTemplate) serverIp = message.server.ip;
+                // TODO: for services, need to find corresponding server
+                else return;
+
                 // const server: Servers[] = await s.getServersByIds([message.server.id]);
-                // await reboot(server.ipAddr, process.env.SSH_USER);
+                // await reboot(serverIp, process.env.SSH_USER);
                 break;
             default:
                 console.log(theme.error("Unknown type of action"));

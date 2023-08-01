@@ -1,4 +1,5 @@
 import {AxiosResponse} from "axios";
+import {config} from "../index";
 const axios = require('axios');
 
 /**
@@ -12,7 +13,11 @@ export async function isPersonFree (id: number) : Promise<boolean> {
     const day: number = today.getDate();
     const month: number = today.getMonth() + 1;
     const year: number = today.getFullYear();
-    let apiUrl: string = `http://manager.reseau.lan/index.php/checkDispoUserByDate?date-debut=${month}/${day}/${year}&id=${id}`
+    let apiUrl: string = config.apis.holidays_url
+        .replace("${day}", day.toString())
+        .replace("${month}", month.toString())
+        .replace("${year}", year.toString())
+        .replace("${id}", id.toString());
     const res: AxiosResponse<any> = await axios.get(apiUrl);
 
     if (JSON.stringify(res.data).includes("undefined")) throw new Error("Person ID does not exist");
@@ -26,5 +31,5 @@ export async function isPersonFree (id: number) : Promise<boolean> {
 export async function isItTheGoodTime() : Promise<boolean> {
     const date: Date = new Date();
     const hour: number = date.getHours();
-    return hour <= 20 && hour >= 6;
+    return hour <= config.misc.max_hour && hour >= config.misc.min_hour;
 }

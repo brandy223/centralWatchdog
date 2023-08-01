@@ -1,5 +1,6 @@
 
 import { Servers } from "@prisma/client";
+import {config} from "../../index";
 
 const s = require("./Servers");
 const Network = require('../Network');
@@ -21,14 +22,14 @@ export async function centralServerDatabaseInit(): Promise<void> {
 
     // VERIFY SERVER EXISTS IN DATABASE
     if (!await s.isServerInDatabase(ip)) {
-        await s.addServerToDatabase(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+        await s.addServerToDatabase(ip, "Central", config.mainServer.port, serverPriority);
         console.log(`Added central server to database`);
         return;
     }
 
     // IF SERVER ALREADY IN DATABASE
     if (!await s.isServerCentral(ip) || !await s.isPortSet(ip) || !await s.isServerPrioritySet(ip)) {
-        await s.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+        await s.updateServer(ip, "Central", config.mainServer.port, serverPriority);
         console.log(`Updated server information`);
         return;
     }
@@ -36,14 +37,14 @@ export async function centralServerDatabaseInit(): Promise<void> {
     // IF SERVERS INFORMATION ARE CORRECT
     const server: Servers = await s.getServerByIP(ip);
     if (await s.isPortSet(ip)) {
-        if (server?.port !== Number(process.env.SERVER_PORT)) {
-            await s.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
-            console.log(`Updated server port to ${process.env.SERVER_PORT}`);
+        if (server?.port !== config.mainServer.port) {
+            await s.updateServer(ip, "Central", config.mainServer.port, serverPriority);
+            console.log(`Updated server port to ${config.mainServer.port}`);
         }
     }
     if (await s.isServerPrioritySet(ip)) {
         if (server?.priority !== serverPriority) {
-            await s.updateServer(ip, "Central", Number(process.env.SERVER_PORT), serverPriority);
+            await s.updateServer(ip, "Central", config.mainServer.port, serverPriority);
             console.log(`Updated server priority to ${serverPriority}`);
         }
     }

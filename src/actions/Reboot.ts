@@ -5,12 +5,12 @@ const theme = require('../utils/ColorScheme').theme;
 
 /**
  * Reboot the server
- * @param {number} ip The ip of the server
+ * @param {string} ip The ip of the server
  * @param {string} user The user of the server
  * @returns {Promise<void>} Nothing
  * @throws {Error} If the server is not reachable
  */
-export async function reboot(ip: number, user: string): Promise<void> {
+export async function reboot(ip: string, user: string): Promise<void> {
     const arg1: string = `${user}@${ip}`;
     const arg2: string = "sudo reboot";
     const conn: ChildProcessWithoutNullStreams = spawn("ssh", [arg1, arg2]);

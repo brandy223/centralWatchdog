@@ -1,19 +1,22 @@
 
 import {Actors} from "@prisma/client";
+import {config} from "../index";
+
+import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
 
 const validator = require('email-validator');
 const theme = require("../utils/ColorScheme").theme;
 const nodemailer = require('nodemailer');
-const config = {
+const mailerConfig = {
     mail: {
-        host: process.env.MAIL_HOST,
-        port: process.env.MAIL_PORT,
-        secure: false,
-        ignoreTLS: true,
+        host: config.mail.host,
+        port: config.mail.port,
+        secure: config.mail.secure,
+        ignoreTLS: config.mail.ignoreTLS
     }
 };
-const transporter = nodemailer.createTransport(config.mail, {
-    from: `Watchdog <${process.env.MAIL_AUTHOR}>`,
+const transporter = nodemailer.createTransport(mailerConfig.mail, {
+    from: `Watchdog <${config.mail.author}>`,
 });
 
 /**
@@ -29,8 +32,6 @@ interface Email {
     text: string;
     html: string;
 }
-
-import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
 
 let lastEmailSent = new Map<number, number>;
 
@@ -50,8 +51,8 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
             continue;
         }
         const lastEmailSentTime: number | undefined = lastEmailSent.get(actor.id);
-        if (lastEmailSentTime !== undefined && Math.abs(lastEmailSentTime - Date.now()) < Number(process.env.EMAIL_COOLDOWN)) {
-            console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${process.env.EMAIL_COOLDOWN}ms ago`));
+        if (lastEmailSentTime !== undefined && Math.abs(lastEmailSentTime - Date.now()) < config.mail.cooldown) {
+            console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${config.mail.cooldown}ms ago`));
             continue;
         }
         lastEmailSent.set(actor.id, Date.now());

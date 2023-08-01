@@ -5,6 +5,7 @@ const axios = require('axios').default;
 const { theme } = require("../utils/ColorScheme");
 
 import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {config} from "../index";
 
 let lastMessageSent = new Map<number, number>;
 
@@ -24,8 +25,8 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
             continue;
         }
         const lastMessageSentTime: number | undefined = lastMessageSent.get(actor.id);
-        if (lastMessageSentTime !== undefined && Math.abs(lastMessageSentTime - Date.now()) < Number(process.env.MESSAGE_COOLDOWN)) {
-            console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${process.env.MESSAGE_COOLDOWN}ms ago`));
+        if (lastMessageSentTime !== undefined && Math.abs(lastMessageSentTime - Date.now()) < config.message.cooldown) {
+            console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${config.message.cooldown}ms ago`));
             continue;
         }
 
@@ -61,6 +62,6 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
  * @returns {Promise<void>}
  */
 export async function sendMessage (number: string, message: string) : Promise<void> {
-    await axios.post(process.env.SEND_SMS_ROUTE + "?numeros=[\"" + number + "\"]&message=" + message);
+    await axios.post(config.apis.sms_url + "?numeros=[\"" + number + "\"]&message=" + message);
     console.log(theme.info(`Message sent to ${number}`));
 }

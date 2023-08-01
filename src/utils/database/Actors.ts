@@ -130,7 +130,7 @@ async function getFreeActorsIds (actorsIds: Map<number, number>, excludedPriorit
 async function getHighestPriorityActors(actorsIds: Map<number, number>, excludedPriorityValues: number[]): Promise<Map<number, number>> {
     if (actorsIds.size === 0) throw new Error("No actors given");
     const highestPriorityActors: Map<number, number> = new Map();
-    let highestPriority: number = 100;
+    let highestPriority: number = 100;      // Just a random high number that will not be reached
     for (const [actorId, priority] of actorsIds) {
         if (priority < highestPriority && !excludedPriorityValues.includes(priority)) {
             highestPriority = priority;

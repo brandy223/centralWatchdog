@@ -12,6 +12,7 @@ const theme = require("./ColorScheme").theme;
 const eventEmitter = require("../index").eventEmitter;
 
 import {Servers, ServicesData, Services} from "@prisma/client";
+import {config} from "../index";
 
 const Template = require("../templates/DataTemplates");
 
@@ -53,7 +54,7 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
             const numberOfConnections: number = Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [0])[0];
             if ((serverConnectionsInfo.get(serverIP) === undefined)
                 || (numberOfConnections === 0)
-                || (Math.abs((Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [Date.now()])[1]) - Date.now()) > Number(process.env.SERVERS_CHECK_PERIOD))) {
+                || (Math.abs((Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [Date.now()])[1]) - Date.now()) > config.nodeServers.max_time_between_connections)) {
 
                 if (numberOfConnections === 0) console.log(theme.warningBright("Server " + serverIP + " has 0 connections, trying to ping..."));
                 else console.log(theme.warningBright("Server " + serverIP + " has not connected for a while, trying to ping..."));
@@ -80,7 +81,7 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
                 eventEmitter.emit("server_not_connected_state", messageToSend);
             }
         }
-    }, Number(process.env.SERVERS_CHECK_PERIOD));
+    }, config.nodeServers.check_period);
 }
 
 /**

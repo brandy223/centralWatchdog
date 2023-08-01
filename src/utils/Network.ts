@@ -1,9 +1,11 @@
 'use strict';
 
+import {config} from "../index";
+
 const ip = require("ip");
 const pingConfig = {
-    timeout: 10,
-    extra: ["-i", "0.5", "-c", "1"],
+    timeout: config.ping.timeout,
+    extra: config.ping.extra
 }
 
 /**

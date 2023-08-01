@@ -1,8 +1,10 @@
 
-const events = require('events');
-export const eventEmitter = new events.EventEmitter();
 const dotenv = require('dotenv');
 dotenv.config();
+export const config = require("../config.json").config;
+
+const events = require('events');
+export const eventEmitter = new events.EventEmitter();
 
 // DATABASE
 const s = require('./utils/database/Servers');
@@ -10,6 +12,7 @@ const se = require('./utils/database/Services');
 const j = require('./utils/database/Jobs');
 const misc = require('./utils/database/Misc');
 
+// UTILS
 const ServicesUtils = require('./utils/Services');
 const Timer = require('./utils/Timer');
 const ArrayUtils = require('./utils/utilities/Array');
@@ -17,10 +20,12 @@ const theme = require('./utils/ColorScheme').theme;
 const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessage;
 const { messageHandler } = require('./handlers/MessageHandler');
 
+// TYPES
 import {Jobs, Servers, ServersOfJobs, Services} from "@prisma/client";
 import {Socket} from "socket.io";
 import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "./templates/DataTemplates";
 
+// SERVER
 const express = require('express');
 const app = express();
 const http = require('http');
@@ -41,11 +46,11 @@ async function main(): Promise<void> {
     let serversIds: number[] = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
     let serversIpAddr: string[] = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
     console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
-    cache.set("jobsIds", jobsIds, 60*60);
+    cache.set("jobsIds", jobsIds, config.jobs.cache_duration);
 
     const jobsInterval = setInterval((): void => {
         updateJobsListInCache();
-    }, Number(process.env.GLOBAL_REFRESH_PERIOD));
+    }, config.jobs.check_period);
 
     const corsOptions = {
         // * WHITELIST
@@ -77,7 +82,7 @@ async function main(): Promise<void> {
     // GROUPED
     let dataServices: Services[] = await se.getServicesByType(1);
     let servicesGroupedDataWrapper: any[] = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(dataServices);
-    let servicesGroupedDataTasks: any[] = await Timer.executeTimedTask(servicesGroupedDataWrapper, [5000]);
+    let servicesGroupedDataTasks: any[] = await Timer.executeTimedTask(servicesGroupedDataWrapper, [config.servicesData.check_period]);
 
     io.on("error", () => {
         console.log(theme.error("Error"));
@@ -152,8 +157,8 @@ async function main(): Promise<void> {
         eventEmitter.on("service_data_state_broadcast", serviceDataValueListener);
     });
 
-    server.listen(process.env.SERVER_PORT, (): void => {
-        console.log(`Server listening on port ${process.env.SERVER_PORT}`);
+    server.listen(config.mainServer.port, (): void => {
+        console.log(`Server listening on port ${config.mainServer.port}`);
     });
 
     cache.on("set", async (key: string, value: (number | string)[]): Promise<void> => {
@@ -172,7 +177,7 @@ async function main(): Promise<void> {
         switch (key) {
             case "jobsIds":
                 jobsIds = (await j.getAllJobs()).map((job: Jobs) => job.id);
-                cache.set("jobsIds", jobsIds, 60*60);
+                cache.set("jobsIds", jobsIds, config.jobs.cache_duration);
                 break;
         }
         if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
@@ -193,6 +198,6 @@ main();
 async function updateJobsListInCache(): Promise<void> {
     const jobsIds: number[] = (await j.getAllJobs()).map((job: Jobs) => job.id);
     if (cache.get("jobsIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("jobsIds"), jobsIds))) return;
-    cache.set("jobsIds", jobsIds);
+    cache.set("jobsIds", jobsIds, config.jobs.cache_duration);
     console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
 }

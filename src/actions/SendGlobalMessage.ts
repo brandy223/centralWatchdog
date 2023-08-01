@@ -5,6 +5,7 @@ import {
     ServiceTestTemplate
 } from "../templates/DataTemplates";
 import {theme} from "../utils/ColorScheme";
+import {config} from "../index";
 
 // DATABASE
 const apiCash = require("../utils/database/ApiCash");
@@ -65,7 +66,7 @@ export async function main (inCacheName: string, messageContent: string, scenari
         const createdMessage = await apiCash.createMessage(messageContent);
         const message = await apiCash.getMessage(createdMessage.mes_id as number);
         message["priority"] = scenarioPriority;
-        cache.set(inCacheName, message, 60*60);
+        cache.set(inCacheName, message, config.apiCash.cache_duration);
         return;
     }
 
