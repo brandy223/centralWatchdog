@@ -25,7 +25,6 @@ export async function stateValuesHandler(message: PingTemplate | ServiceTestTemp
                         stateValuesMap.set(stateValue.id, [isStateValueTrue, Number(stateValue.priority)]);
                         break;
                 }
-
                 break;
             // * INFERIOR INT
             case 2:
@@ -37,10 +36,29 @@ export async function stateValuesHandler(message: PingTemplate | ServiceTestTemp
                         if (pingPercentage < Number(stateValue.value)) isStateValueTrue = true;
                         stateValuesMap.set(stateValue.id, [isStateValueTrue, Number(stateValue.priority)]);
                         break;
+                    // Service Data
+                    case 4:
+                        if (message instanceof ServiceDataTemplate && Number(message.value) < Number(stateValue.value)) isStateValueTrue = true;
+                        stateValuesMap.set(stateValue.id, [isStateValueTrue, Number(stateValue.priority)]);
+                        break;
                 }
                 break;
             // * SUPERIOR INT
             case 3:
+                switch(message.messageType) {
+                    // PING
+                    case 1:
+                        let pingPercentage: number = 0;
+                        if (message instanceof PingTemplate) pingPercentage = Number(message.pingInfo[2].split("%")[0]);
+                        if (pingPercentage > Number(stateValue.value)) isStateValueTrue = true;
+                        stateValuesMap.set(stateValue.id, [isStateValueTrue, Number(stateValue.priority)]);
+                        break;
+                    // Service Data
+                    case 4:
+                        if (message instanceof ServiceDataTemplate && Number(message.value) > Number(stateValue.value)) isStateValueTrue = true;
+                        stateValuesMap.set(stateValue.id, [isStateValueTrue, Number(stateValue.priority)]);
+                        break;
+                }
                 break;
             default:
                 console.log(theme.error("Unknown state value type"));
