@@ -1,6 +1,4 @@
 
-import {ActorsForScenarios, ActorsListsForScenarios} from "@prisma/client";
-
 /**
  * Returns the unique values from an array
  * @param {any[]} array The array to get the unique values from

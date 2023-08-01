@@ -1,10 +1,8 @@
 
-import {Actions, Scenarios, Servers, Services, StateValues} from "@prisma/client";
+import {Actions, Scenarios, StateValues} from "@prisma/client";
 
 // DATABASE
-const s = require("../utils/database/Servers");
 const sv = require("../utils/database/StateValues");
-const svc = require("../utils/database/Services");
 const sc = require("../utils/database/Scenarios");
 const dbActions = require("../utils/database/Actions");
 const dbActors = require("../utils/database/Actors");

@@ -4,13 +4,6 @@ import { Servers } from "@prisma/client";
 const s = require("./Servers");
 const Network = require('../Network');
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient(
-    {
-        // log: ["query", "info", "warn", "error"],
-    },
-);
-
 /**
  * Initialize the central server in database
  */

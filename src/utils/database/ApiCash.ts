@@ -18,7 +18,7 @@ const connection = mysql.createConnection({
 export async function createMessage(messageContent: string): Promise<any> {
     const today: Date = new Date();
     const messageEndDate: Date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    return new Promise((resolve, reject): void => {
+    return new Promise((resolve): void => {
         connection.query("INSERT INTO m_apicash_message (mess_content, mess_begin, mess_end, USR_0, priority) VALUES (?, ?, ?, ?, 1)", [messageContent, today.getTime() / 1000, messageEndDate.getTime() / 1000, ""], (err: any, result: any) => {
             if (err) throw err;
             console.log(theme.success("Message created successfully : " + JSON.stringify(result)));

@@ -1,4 +1,3 @@
-import {getAllServicesData} from "./utils/database/ServiceData";
 
 const events = require('events');
 export const eventEmitter = new events.EventEmitter();
@@ -9,8 +8,6 @@ dotenv.config();
 const s = require('./utils/database/Servers');
 const se = require('./utils/database/Services');
 const j = require('./utils/database/Jobs');
-const so = require('./utils/database/ServiceObject');
-const sd = require('./utils/database/ServiceData');
 const misc = require('./utils/database/Misc');
 
 const ServicesUtils = require('./utils/Services');
@@ -20,10 +17,9 @@ const theme = require('./utils/ColorScheme').theme;
 const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessage;
 const { messageHandler } = require('./handlers/MessageHandler');
 
-import {Jobs, Servers, ServersOfJobs, Services, ServicesData} from "@prisma/client";
+import {Jobs, Servers, ServersOfJobs, Services} from "@prisma/client";
 import {Socket} from "socket.io";
 import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "./templates/DataTemplates";
-import {getServicesByType} from "./utils/database/Services";
 
 const express = require('express');
 const app = express();

@@ -12,7 +12,6 @@ const theme = require("./ColorScheme").theme;
 const eventEmitter = require("../index").eventEmitter;
 
 import {Servers, ServicesData, Services} from "@prisma/client";
-import {cachedDataVersionTag} from "v8";
 
 const Template = require("../templates/DataTemplates");
 
