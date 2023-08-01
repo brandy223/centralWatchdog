@@ -9,6 +9,7 @@ export const eventEmitter = new events.EventEmitter();
 // DATABASE
 const s = require('./utils/database/Servers');
 const se = require('./utils/database/Services');
+const sd = require('./utils/database/ServiceData');
 const j = require('./utils/database/Jobs');
 const misc = require('./utils/database/Misc');
 
@@ -21,7 +22,7 @@ const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessag
 const { messageHandler } = require('./handlers/MessageHandler');
 
 // TYPES
-import {Jobs, Servers, ServersOfJobs, Services} from "@prisma/client";
+import {Jobs, Servers, ServersOfJobs, Services, ServicesData} from "@prisma/client";
 import {Socket} from "socket.io";
 import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "./templates/DataTemplates";
 
@@ -32,9 +33,9 @@ const http = require('http');
 const { Server } = require("socket.io");
 const NodeCache = require("node-cache");
 export const cache = new NodeCache({
-    stdTTL: 30,
-    checkperiod: 60,
-    deleteOnExpire: true
+    stdTTL: config.cache.default_ttl,
+    checkperiod: config.cache.check_period,
+    deleteOnExpire: config.cache.deleteOnExpire
 });
 
 app.use(express.json());
@@ -74,15 +75,18 @@ async function main(): Promise<void> {
     // SERVICES DATA
 
     // NON GROUPED
-    // ? Is it really useful ?
-    // let servicesData: ServicesData[] = (await sd.getAllServicesData()).filter((serviceData: ServicesData) => (serviceData.url !== null || serviceData.url !== ""));
-    // let servicesDataWrapper: any[] = await ServicesUtils.getServiceDataValueFunctionsInArray(servicesData);
-    // let servicesDataTasks: any[] = await Timer.executeTimedTask(servicesDataWrapper, [5000]);
+    let servicesData: ServicesData[] = (await sd.getAllServicesData()).filter((serviceData: ServicesData) => (serviceData.url !== null && serviceData.url !== ""));
+    if (servicesData.length !== 0) {
+        let servicesDataWrapper: any[] = await ServicesUtils.getServiceDataValueFunctionsInArray(servicesData);
+        let servicesDataTasks: any[] = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
+    }
 
     // GROUPED
     let dataServices: Services[] = await se.getServicesByType(1);
-    let servicesGroupedDataWrapper: any[] = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(dataServices);
-    let servicesGroupedDataTasks: any[] = await Timer.executeTimedTask(servicesGroupedDataWrapper, [config.servicesData.check_period]);
+    if (dataServices.length !== 0) {
+        let servicesGroupedDataWrapper: any[] = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(dataServices);
+        let servicesGroupedDataTasks: any[] = await Timer.executeTimedTask(servicesGroupedDataWrapper, [config.servicesData.check_period]);
+    }
 
     io.on("error", () => {
         console.log(theme.error("Error"));
