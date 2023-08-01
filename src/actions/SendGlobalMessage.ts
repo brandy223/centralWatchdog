@@ -37,7 +37,7 @@ export async function main (inCacheName: string, messageContent: string, scenari
 
     if (cachedMessage === undefined) {
         // VERIFY IF MESSAGE EXISTS WITH ANOTHER PRIORITY
-        const priorities: number[] = [1, 2, 3, 4];
+        const priorities: number[] = config.misc.priorities_list;
         const prioritiesToTest: number[] = priorities.filter((priority: number) => priority !== scenarioPriority);
         const prioritiesToSuppress: number[] = [];
 

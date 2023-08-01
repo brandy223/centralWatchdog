@@ -137,6 +137,7 @@ async function main(): Promise<void> {
             else console.log(theme.warning("Client " + socket.id + " disconnected"));
 
             eventEmitter.off("server_not_connected_state", socketListenersMap.get(socket));
+            eventEmitter.off("service_data_state_broadcast", socketListenersMap.get(socket));
             socketListenersMap.delete(socket);
         });
 
