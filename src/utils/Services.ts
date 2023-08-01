@@ -3,6 +3,7 @@
 import {PingTemplate, ServiceDataTemplate} from "../templates/DataTemplates";
 import {AxiosResponse} from "axios";
 const axios = require('axios');
+const request = require('request');
 
 const s = require("./database/Servers");
 const sd = require("./database/ServiceData");
@@ -155,4 +156,68 @@ export async function getServiceDataValueFromServiceFunctionsInArray(services: S
         getServiceDataValueFunctions.push(serviceObjectFunction);
     }
     return getServiceDataValueFunctions;
+}
+
+/**
+ * Make request to a PfSense ip and returns its response
+ * @param {string} ip The PfSense ip address
+ * @returns {Promise<JSON>} The PfSense response
+ */
+export async function getPfSenseData(ip: string): Promise<JSON> {
+    return new Promise<JSON> (async (resolve: any, reject: any): Promise<void> => {
+        const credentials: string = process.env.PFSENSE_USER + ":" + process.env.PFSENSE_PASSWORD;
+        const auth: string = "Basic " + btoa(credentials);
+
+        const token: string = await getPfSenseAuth(ip, auth);
+        if (token === "") {
+            console.log(theme.error("Error while getting token for pfSense " + ip));
+            resolve({});
+        }
+
+        const uri: string = config.apis.pfsense_url.replace("${ip}", ip) + "/services"
+        const auth2: string = "Bearer " + token;
+
+        await request.get(uri, {
+                headers: {
+                    Authorization: auth2
+                },
+                rejectUnauthorized: false,
+                requestCert: true,
+                agent: false,
+            }, (err: any, res: any, body: any): void => {
+                if (err) {
+                    console.error(theme.error(err));
+                    resolve();
+                }
+                resolve(JSON.parse(body));
+            }
+        );
+    });
+}
+
+/**
+ * Get the pfSense auth token
+ * @param ip The pfSense ip address
+ * @param auth The pfSense auth string
+ * @returns {Promise<string>} The token
+ */
+export async function getPfSenseAuth(ip: string, auth: string): Promise<string> {
+    return new Promise<string> (async (resolve: any, reject: any): Promise<void> => {
+        const uri: string = config.apis.pfsense_url.replace("${ip}", ip) + "/access_token";
+
+        await request.post(uri, {
+            headers: {
+                "Authorization": auth
+            },
+            rejectUnauthorized: false,
+            requestCert: true,
+            agent: false,
+        }, (err: any, res: any, body: any): void => {
+            if (err) {
+                console.error(theme.error(err));
+                resolve("");
+            }
+            resolve((JSON.parse(body)).data.token);
+        });
+    });
 }
