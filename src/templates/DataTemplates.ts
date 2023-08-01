@@ -17,6 +17,17 @@ interface ServiceData {
     name: string,
 }
 
+interface PfSense {
+    id: number,
+    ip: string
+}
+
+interface PfSenseService {
+    id: number,
+    name: string,
+    pfSenseRequestId: number
+}
+
 export class PingTemplate {
     messageType: number;
     server: Server;
@@ -47,8 +58,19 @@ export class ServiceTestTemplate {
     }
 }
 
-// PFSENSE
-// MESSAGE TYPE 3
+export class pfSenseServiceTemplate {
+    messageType: number;
+    pfSense: PfSense;
+    pfSenseService: PfSenseService;
+    status: string[];
+
+    constructor(pfSenseId: number, pfSenseIp: string, pfSenseServiceId: number, pfSenseServiceName: string, pfSenseRequestId: number, status: string[]) {
+        this.messageType = 3;
+        this.pfSense = { id: pfSenseId, ip: pfSenseIp };
+        this.pfSenseService = { id: pfSenseServiceId, name: pfSenseServiceName, pfSenseRequestId };
+        this.status = status;
+    }
+}
 
 export class ServiceDataTemplate {
     messageType: number;
