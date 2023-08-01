@@ -24,10 +24,14 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
             console.log(theme.warning(`Actor ${actor.id} has no number`));
             continue;
         }
+
         const lastMessageSentTime: number | undefined = lastMessageSent.get(actor.id);
-        if (lastMessageSentTime !== undefined && Math.abs(lastMessageSentTime - Date.now()) < config.message.cooldown) {
-            console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${config.message.cooldown}ms ago`));
-            continue;
+        if (lastMessageSentTime !== undefined) {
+            const intervalTime: number = Math.abs(lastMessageSentTime - Date.now());
+            if (intervalTime < config.message.cooldown) {
+                console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${config.message.cooldown}ms ago (${intervalTime}ms)`));
+                continue;
+            }
         }
 
         let messageContent: string = "";

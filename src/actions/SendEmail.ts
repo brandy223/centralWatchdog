@@ -51,10 +51,14 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
             console.log(theme.warning(`Actor ${actor.id} has no email`));
             continue;
         }
+
         const lastEmailSentTime: number | undefined = lastEmailSent.get(actor.id);
-        if (lastEmailSentTime !== undefined && Math.abs(lastEmailSentTime - Date.now()) < config.mail.cooldown) {
-            console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${config.mail.cooldown}ms ago`));
-            continue;
+        if (lastEmailSentTime !== undefined) {
+            const intervalTime: number = Math.abs(lastEmailSentTime - Date.now());
+            if (intervalTime < config.mail.cooldown) {
+                console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${config.mail.cooldown}ms ago (${intervalTime}ms)`));
+                continue;
+            }
         }
         lastEmailSent.set(actor.id, Date.now());
         await email(actor.email, message, stateValue);
