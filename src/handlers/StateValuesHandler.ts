@@ -7,7 +7,7 @@ import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templat
 /**
  * Parse message from server and execute the corresponding action
  * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message Message to parse
- * @param stateValues State values to check
+ * @param {StateValues[]} stateValues State values to check
  * @returns {Promise<Map>}
  */
 export async function stateValuesHandler(message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValues: StateValues[]): Promise<Map<number, [boolean, number]>> {
