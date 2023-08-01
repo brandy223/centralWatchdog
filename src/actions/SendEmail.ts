@@ -1,5 +1,5 @@
 
-import {Actors} from "@prisma/client";
+import {Actors, StateValues} from "@prisma/client";
 import {config} from "../index";
 
 import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
@@ -39,10 +39,11 @@ let lastEmailSent = new Map<number, number>;
  * Send email to a list of actors
  * @param {Actors[]} actors The actors to send the email to
  * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
+ * @param {StateValues} stateValue The state value
  * @returns {Promise<void>}
  * @throws {Error} If the list of actors is empty
  */
-export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate) : Promise<void> {
+export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValue: StateValues) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
     for (const actor of actors) {
@@ -56,7 +57,7 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
             continue;
         }
         lastEmailSent.set(actor.id, Date.now());
-        await email(actor.email, message);
+        await email(actor.email, message, stateValue);
     }
 }
 
@@ -64,13 +65,14 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
  * Main function to send an email
  * @param {string} to The email receiver
  * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
+ * @param {StateValues} stateValue The state value
  * @returns {Promise<void>}
  * @throws {Error} If the email is not valid
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
-export async function email(to: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate): Promise<void> {
+export async function email(to: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValue: StateValues): Promise<void> {
     if (!validator.validate(to)) throw new Error("Email is not valid");
-    const emailToSend = await emailConstructor(to, message);
+    const emailToSend = await emailConstructor(to, message, stateValue);
     await sendEmail(emailToSend);
 }
 
@@ -78,10 +80,11 @@ export async function email(to: string, message: PingTemplate | ServiceTestTempl
  * Email constructor
  * @param {string} email
  * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
+ * @param {StateValues} stateValue The state value
  * @returns {Promise<Email>}
  * @throws {Error} If the type of message is not valid
  */
-async function emailConstructor(email: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate): Promise<Email> {
+async function emailConstructor(email: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValue: StateValues): Promise<Email> {
     let subject: string = "";
     let text: string = "";
     let html: string = "";
@@ -108,7 +111,12 @@ async function emailConstructor(email: string, message: PingTemplate | ServiceTe
             }
             break;
         case 4:
-            // TODO: IMPLEMENT
+            if (message instanceof ServiceDataTemplate) {
+                data = stateValue.description ? stateValue.description : "No Data";
+                subject = `Service Data ${message.serviceData.name}'s value : ${message.value}`;
+                text = `Service Data ${message.serviceData.name} request's status : ${message.status[0]}<br><u>State value description :</u> ${data}`;
+                html = `<h3>${subject}</h3><p>${text}</p>`;
+            }
             break;
         default:
             throw new Error("Type of message is not valid");
