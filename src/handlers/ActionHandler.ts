@@ -46,15 +46,19 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
             break;
         case 4:
             if (message instanceof ServiceDataTemplate)
-                stateValues = await sv.getObjectStateValues(message.serviceData.id);
+                stateValues = await sv.getDataStateValues(message.serviceData.id);
             break;
     }
-
     if (stateValues.length === 0) return;
 
-    const stateValuesMap = await stateValuesHandler(message, stateValues);
-    const highestPriorityStateValue: number = MapUtils.getHighestPriorityStateValue(stateValuesMap);
-    if (highestPriorityStateValue === -1) return;
+    let highestPriorityStateValue: number = stateValues[0].priority;
+
+    if (stateValues.length > 1) {
+        const stateValuesMap = await stateValuesHandler(message, stateValues);
+        if (stateValuesMap.size === 0) return;
+        highestPriorityStateValue = MapUtils.getHighestPriorityStateValue(stateValuesMap);
+        if (highestPriorityStateValue === -1) return;
+    }
 
     // GET SCENARIO ID FROM STATE VALUE ID
     const scenario: Scenarios = await sc.getScenarioFromStateValueId(highestPriorityStateValue);

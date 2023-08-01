@@ -121,7 +121,7 @@ async function main(): Promise<void> {
                     // TODO: TO BE IMPLEMENTED
                     break;
                 case 4:
-                    const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.object.id, message.object.name, message.object.value, message.object.status);
+                    const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.serviceData.id, message.serviceData.name, message.value, message.status);
                     await messageHandler(refactoredObjectMessage);
                     break;
             }
@@ -180,6 +180,11 @@ async function main(): Promise<void> {
                 break;
         }
         if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
+    });
+
+    eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
+        const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.serviceData.id, message.serviceData.name, message.value, message.status);
+        await messageHandler(refactoredObjectMessage);
     });
 }
 
