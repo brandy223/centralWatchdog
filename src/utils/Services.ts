@@ -85,8 +85,9 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
 }
 
 /**
- *
- * @param objects
+ * Put in functions the process to get the value of the service data from url and broadcast it
+ * @param {ServicesData[]} objects The list of services data to watch
+ * @returns {Promise<any[]>} The list of functions to execute
  */
 export async function getServiceDataValueFunctionsInArray(objects: ServicesData[]): Promise<any[]> {
     if (objects.length === 0) {
@@ -115,6 +116,11 @@ export async function getServiceDataValueFunctionsInArray(objects: ServicesData[
     return getServiceObjectValueFunctions;
 }
 
+/**
+ * Put in functions the process to get the value of the service data from a group, get the value and broadcast it
+ * @param {Services[]} services The list of services to watch (of type 1)
+ * @returns {Promise<any[]>} The list of functions to execute
+ */
 export async function getServiceDataValueFromServiceFunctionsInArray(services: Services[]): Promise<any[]> {
     if (services.length === 0) {
         console.log(theme.warning("No services found"));

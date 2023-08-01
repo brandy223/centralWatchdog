@@ -18,7 +18,7 @@ type Message = {
     mes_id: number,
     mess_content: string,
     mess_begin: number,
-    mess_end: number,
+    mess_end: number
     // mess_site: string,
     // USR_0: string,
     // priority: number
@@ -121,6 +121,7 @@ export async function createInCacheNameAndMessageContent (message: (PingTemplate
                 inCacheName = `${message.serviceData.name}_apiCash_message_${scenarioPriority}`;
                 messageContent = `UNDEFINED`;
                 // TODO: Define message content HERE
+                // ? Description of state value ??
             }
             break;
         default:
