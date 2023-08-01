@@ -99,27 +99,29 @@ model ServicesAndData {
 model Jobs {
   id          Int                 @id @default(autoincrement())
   name        String              @db.VarChar(255)
-  interval    Int                 @db.MediumInt
+  interval    Int?                @db.MediumInt
   services    ServicesOfServers[]
   stateValues StateValues[]
   servers     ServersOfJobs[]
 }
 
 model StateValues {
-  id          Int           @id @default(autoincrement())
-  name        String        @db.VarChar(255)
-  description String?       @db.VarChar(255)
-  value       String        @db.VarChar(255)
-  typeOfValue Int           @db.TinyInt
-  priority    Int           @db.TinyInt
-  jobId       Int?
-  serverId    Int?
-  scenarioId  Int
-  dataId      Int?
-  job         Jobs?         @relation(fields: [jobId], references: [id])
-  server      Servers?      @relation(fields: [serverId], references: [id])
-  scenario    Scenarios     @relation(fields: [scenarioId], references: [id])
-  data        ServicesData? @relation(fields: [dataId], references: [id])
+  id               Int              @id @default(autoincrement())
+  name             String           @db.VarChar(255)
+  description      String?          @db.VarChar(255)
+  value            String           @db.VarChar(255)
+  typeOfValue      Int              @db.TinyInt
+  priority         Int              @db.TinyInt
+  jobId            Int?
+  serverId         Int?
+  scenarioId       Int
+  dataId           Int?
+  pfSenseServiceId Int?
+  job              Jobs?            @relation(fields: [jobId], references: [id])
+  server           Servers?         @relation(fields: [serverId], references: [id])
+  scenario         Scenarios        @relation(fields: [scenarioId], references: [id])
+  data             ServicesData?    @relation(fields: [dataId], references: [id])
+  pfSenseService   PfSenseServices? @relation(fields: [pfSenseServiceId], references: [id])
 }
 
 model Scenarios {
@@ -193,4 +195,29 @@ model ActorsListsForScenarios {
   priority           Int                @db.TinyInt
 
   @@id([actionId, scenarioId, listId])
+}
+
+model PfSenses {
+  id              Int                  @id @default(autoincrement())
+  ip              String               @unique @db.VarChar(64)
+  name            String?              @db.VarChar(255)
+  pfSenseServices PfSenseAndServices[]
+}
+
+model PfSenseServices {
+  id               Int                  @id @default(autoincrement())
+  name             String               @db.VarChar(255)
+  description      String?              @db.VarChar(255)
+  pfSenseRequestId Int?
+  pfSenses         PfSenseAndServices[]
+  stateValues      StateValues[]
+}
+
+model PfSenseAndServices {
+  pfSenseId        Int
+  pfSenseServiceId Int
+  pfSense          PfSenses        @relation(fields: [pfSenseId], references: [id])
+  pfSenseService   PfSenseServices @relation(fields: [pfSenseServiceId], references: [id])
+
+  @@id([pfSenseId, pfSenseServiceId])
 }
