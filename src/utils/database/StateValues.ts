@@ -48,7 +48,7 @@ export async function getJobStateValues (id: number) : Promise<StateValues[]> {
  * @returns {Promise<StateValues[]>} The state values of the object
  * @throws {Error} If the object is not in the database
  */
-export async function getObjectStateValues (id: number) : Promise<StateValues[]> {
+export async function getDataStateValues (id: number) : Promise<StateValues[]> {
     if ((await so.getServiceObjectsByIds([id])) === null) throw new Error("Object is not in database");
-    return prisma.stateValues.findMany({where: {objectId: id}});
+    return prisma.stateValues.findMany({where: {dataId: id}});
 }
