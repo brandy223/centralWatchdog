@@ -50,24 +50,22 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
     }
     if (stateValues.length === 0) return;
 
-    let highestPriorityStateValue: number = stateValues[0].priority;
-
-    if (stateValues.length > 1) {
-        const stateValuesMap = await stateValuesHandler(message, stateValues);
-        if (stateValuesMap.size === 0) return;
-        highestPriorityStateValue = MapUtils.getHighestPriorityStateValue(stateValuesMap);
-        if (highestPriorityStateValue === -1) return;
-    }
+    const stateValuesMap: Map<number, [boolean, number]> = await stateValuesHandler(message, stateValues);
+    if (stateValuesMap.size === 0) return;
+    const highestPriorityStateValueId: number = MapUtils.getHighestPriorityStateValue(stateValuesMap);
+    if (highestPriorityStateValueId === -1) return;
 
     // GET SCENARIO ID FROM STATE VALUE ID
-    const scenario: Scenarios = await sc.getScenarioFromStateValueId(highestPriorityStateValue);
-    const actions: Actions[] = await dbActions.getActionsFromStateValueId(highestPriorityStateValue);
+    const scenario: Scenarios = await sc.getScenarioFromStateValueId(highestPriorityStateValueId);
+    const actions: Actions[] = await dbActions.getActionsFromStateValueId(highestPriorityStateValueId);
+
+    const stateValue: StateValues = await sv.getStateValueById(highestPriorityStateValueId);
 
     for (const action of actions) {
         switch (action.name.toLowerCase()) {
             case "sendmail":
                 if (!(await isItTheGoodTime())) break;
-                await sendEmail(await dbActors.getActorsListToNotify(scenario.id, action.id), message);
+                await sendEmail(await dbActors.getActorsListToNotify(scenario.id, action.id), message, stateValue);
                 break;
             case "sendmessage":
                 if (!(await isItTheGoodTime())) break;
@@ -75,8 +73,8 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
                 break;
             case "sendglobalmessage":
                 //* Essentially for services objects
-                const globalMessageInfo: string[] = await gm.createInCacheNameAndMessageContent(message, highestPriorityStateValue);
-                await gm.main(globalMessageInfo[0], globalMessageInfo[1], highestPriorityStateValue);
+                const globalMessageInfo: string[] = await gm.createInCacheNameAndMessageContent(message, stateValuesMap.get(highestPriorityStateValueId)![1]);
+                await gm.main(globalMessageInfo[0], globalMessageInfo[1], stateValuesMap.get(highestPriorityStateValueId)![1]);
                 break;
             case "reboot":
                 let serverIp: string = ""
