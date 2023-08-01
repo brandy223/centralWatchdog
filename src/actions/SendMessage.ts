@@ -28,7 +28,6 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
             console.log(theme.warning(`Actor ${actor.id} has already been notified less than ${process.env.MESSAGE_COOLDOWN}ms ago`));
             continue;
         }
-        lastMessageSent.set(actor.id, Date.now());
 
         let messageContent: string = "";
         switch (message.messageType) {
@@ -39,13 +38,18 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
                 if (message instanceof ServiceTestTemplate) messageContent = `Problem with Service : ${message.service.name} on Server : ${message.server.ip} ! More info in mail.`;
                 break;
             case 4:
-                // TODO: TO BE IMPLEMENTED
+                if (message instanceof  ServiceDataTemplate) messageContent = `Problem with Service Data : ${message.serviceData.name} : ${message.value}. Status : ${message.status.toString()}. More info in mail.`
                 break;
             default:
                 console.log(theme.error("Unknown message type"));
                 return;
         }
+        if (messageContent === "") {
+            console.log(theme.error("Message content is empty"));
+            return;
+        }
 
+        lastMessageSent.set(actor.id, Date.now());
         await sendMessage(actor.number, messageContent);
     }
 }
