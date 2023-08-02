@@ -11,6 +11,8 @@ const s = require('./utils/database/Servers');
 const se = require('./utils/database/Services');
 const sd = require('./utils/database/ServiceData');
 const j = require('./utils/database/Jobs');
+const pfs = require('./utils/database/PfSenses');
+const pfsv = require('./utils/database/PfSenseServices');
 const misc = require('./utils/database/Misc');
 
 // UTILS
@@ -22,9 +24,23 @@ const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessag
 const { messageHandler } = require('./handlers/MessageHandler');
 
 // TYPES
-import {Jobs, Servers, ServersOfJobs, Services, ServicesData} from "@prisma/client";
+import {
+    Jobs,
+    PfSenseAndServices,
+    PfSenses,
+    PfSenseServices,
+    Servers,
+    ServersOfJobs,
+    Services,
+    ServicesData
+} from "@prisma/client";
 import {Socket} from "socket.io";
-import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "./templates/DataTemplates";
+import {
+    PfSenseServiceTemplate,
+    PingTemplate,
+    ServiceDataTemplate,
+    ServiceTestTemplate
+} from "./templates/DataTemplates";
 
 // SERVER
 const express = require('express');
@@ -72,6 +88,41 @@ async function main(): Promise<void> {
     let checkOnServer = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
     const socketListenersMap: Map<Socket, (data: any) => void> = new Map();
 
+    // PFSENSES
+    let test = setInterval(async (): Promise<void> => {
+        let assignedPfSenseServices: PfSenseAndServices[] = await pfsv.getAllPfSenseServicesAssignedToAPfSense();
+        let pfSenseIds: number[] = await ArrayUtils.getUniqueValuesFromArray(assignedPfSenseServices.map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId));
+        let pfSenses: PfSenses[] = await pfs.getPfSensesByIds(pfSenseIds);
+        for (let pfSense of pfSenses) {
+            const pfSenseData: any = await ServicesUtils.getPfSenseData(pfSense.ip);
+            // if (pfSenseData === {}) continue;
+            const pfSenseServices: PfSenseServices[] = await pfsv.getPfSenseServicesByIds(assignedPfSenseServices.filter((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId === pfSense.id).map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseServiceId));
+            for (let pfSenseService of pfSenseServices) {
+                let hitData: number[] = [];
+                let correspondingIndex: number = 0;
+                for (const [index, value] of pfSenseData.data.entries()) {
+                    if (value.name === pfSenseService.name) hitData.push(index);
+                }
+                if (hitData.length === 0) return;
+                if (hitData.length > 1) {
+                    if (pfSenseService.pfSenseRequestId === null) return;
+                    for (let index of hitData) {
+                        if (pfSenseData.data[index].id === pfSenseService.pfSenseRequestId) {
+                            correspondingIndex = pfSenseData.data[index].id;
+                            break;
+                        }
+                    }
+                } else correspondingIndex = hitData[0];
+
+                const status: string[] = [pfSenseData.data[correspondingIndex].status, pfSenseData.data[correspondingIndex]?.enabled];
+                const pfSenseServiceData: PfSenseServiceTemplate = await ServicesUtils.makePfSenseServiceJSON(pfSense, pfSenseService, status);
+                console.log(theme.bgInfo("Message to be send in broadcast : "));
+                console.log(pfSenseServiceData);
+                eventEmitter.emit("pfsense_service_state_broadcast", pfSenseServiceData);
+            }
+        }
+    }, config.pfSense.check_period);
+
     // SERVICES DATA
 
     // NON GROUPED
@@ -103,6 +154,11 @@ async function main(): Promise<void> {
         }
         socketListenersMap.set(socket, serviceDataValueListener);
 
+        const pfSenseServiceListener = (message: any) => {
+            socket.to("main").emit("room_broadcast", message);
+        }
+        socketListenersMap.set(socket, pfSenseServiceListener);
+
         const connectedServerIp: string = socket.handshake.address.substring(7);
         serverConnectionsInfo.set(connectedServerIp, [((Array.from(serverConnectionsInfo.get(connectedServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
         console.log(theme.info("New connection " + socket.id + " from " + connectedServerIp));
@@ -113,24 +169,24 @@ async function main(): Promise<void> {
             console.log(theme.info("Message's broadcast"));
 
             // Message Parsing
+            let refactoredMessage: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate;
             switch (message.messageType) {
                 case 1:
-                    const refactoredPingMessage: PingTemplate = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
-                    await messageHandler(refactoredPingMessage);
+                    refactoredMessage = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
+                    await messageHandler(refactoredMessage);
                     break;
                 case 2:
-                    const refactoredServiceMessage: ServiceTestTemplate = new ServiceTestTemplate(message.service.id, message.service.name, message.server.id, message.server.ip, message.job.id, message.status);
-                    await messageHandler(refactoredServiceMessage);
+                    refactoredMessage = new ServiceTestTemplate(message.service.id, message.service.name, message.server.id, message.server.ip, message.job.id, message.status);
+                    await messageHandler(refactoredMessage);
                     break;
-                case 3:
-                    // TODO: TO BE IMPLEMENTED
-                    break;
-                case 4:
-                    const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.serviceData.id, message.serviceData.name, message.value, message.status);
-                    await messageHandler(refactoredObjectMessage);
-                    break;
+                // case 3:
+                //     // TODO: TO BE IMPLEMENTED
+                //     break;
+                // case 4:
+                //     const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.serviceData.id, message.serviceData.name, message.value, message.status);
+                //     await messageHandler(refactoredObjectMessage);
+                //     break;
             }
-            // await messageHandler(message);
         });
 
         socket.on("disconnect", (): void => {
@@ -142,6 +198,7 @@ async function main(): Promise<void> {
 
             eventEmitter.off("server_not_connected_state", socketListenersMap.get(socket));
             eventEmitter.off("service_data_state_broadcast", socketListenersMap.get(socket));
+            eventEmitter.off("pfsense_service_state_broadcast", socketListenersMap.get(socket));
             socketListenersMap.delete(socket);
         });
 
@@ -159,6 +216,7 @@ async function main(): Promise<void> {
         });
 
         eventEmitter.on("server_not_connected_state", serverNotConnectedListener);
+        eventEmitter.on("pfsense_service_state_broadcast", pfSenseServiceListener);
         eventEmitter.on("service_data_state_broadcast", serviceDataValueListener);
     });
 
@@ -190,6 +248,10 @@ async function main(): Promise<void> {
 
     eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
         const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.serviceData.id, message.serviceData.name, message.value, message.status);
+        await messageHandler(refactoredObjectMessage);
+    });
+    eventEmitter.on("pfsense_service_state_broadcast", async (message: any): Promise<void> => {
+        const refactoredObjectMessage: PfSenseServiceTemplate = new PfSenseServiceTemplate(message.pfSense.id, message.pfSense.ip, message.pfSenseService.id, message.pfSenseService.name, message.pfSenseService.pfSendeRequestId, message.status);
         await messageHandler(refactoredObjectMessage);
     });
 }
