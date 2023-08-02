@@ -11,10 +11,9 @@ export async function messageHandler(message: any): Promise<void> {
     switch (Number(message.messageType)) {
         case 1: //*  PING
         case 2: //*  SERVICE
+        case 3: //*  PFSENSE
         case 4: //*  SERVICE DATA
             await actionHandler(message);
-            break;
-        case 3: //*  PfSense
             break;
         case -1: //* Main Central Server Down
             break
