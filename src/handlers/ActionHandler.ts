@@ -17,6 +17,7 @@ import {theme} from "../utils/ColorScheme";
 import {isItTheGoodTime} from "../actions/Utilities";
 
 import {
+    PfSenseServiceTemplate,
     PingTemplate,
     ServiceDataTemplate,
     ServiceTestTemplate
@@ -25,10 +26,10 @@ import {reboot} from "../actions/Reboot";
 
 /**
  * Parse message from server and execute the corresponding action
- * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message Message to parse
+ * @param {PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate} message Message to parse
  * @return {Promise<void>}
  */
-export async function actionHandler(message: (PingTemplate | ServiceTestTemplate | ServiceDataTemplate)): Promise<void> {
+export async function actionHandler(message: (PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate)): Promise<void> {
     let stateValues: StateValues[] = [];
 
     switch(message.messageType) {
@@ -41,7 +42,8 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
                 stateValues = await sv.getJobStateValues(message.job.id);
             break;
         case 3:
-            // TODO: TO BE IMPLEMENTED
+            if (message instanceof PfSenseServiceTemplate)
+                stateValues = await sv.getPfSenseServiceStateValues(message.pfSenseService.id);
             break;
         case 4:
             if (message instanceof ServiceDataTemplate)

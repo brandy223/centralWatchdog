@@ -12,7 +12,6 @@ export async function getUniqueValuesFromArray(array: any[]): Promise<any[]> {
     return uniqueValues;
 }
 
-
 /**
  * Compare 2 arrays
  * @param {any[]} a First array
