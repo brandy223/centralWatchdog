@@ -126,11 +126,11 @@ async function main(): Promise<void> {
     // SERVICES DATA
 
     // NON GROUPED
-    let servicesData: ServicesData[] = (await sd.getAllServicesData()).filter((serviceData: ServicesData) => (serviceData.url !== null && serviceData.url !== ""));
-    if (servicesData.length !== 0) {
-        let servicesDataWrapper: any[] = await ServicesUtils.getServiceDataValueFunctionsInArray(servicesData);
-        let servicesDataTasks: any[] = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
-    }
+    // let servicesData: ServicesData[] = (await sd.getAllServicesData()).filter((serviceData: ServicesData) => (serviceData.url !== null && serviceData.url !== ""));
+    // if (servicesData.length !== 0) {
+    //     let servicesDataWrapper: any[] = await ServicesUtils.getServiceDataValueFunctionsInArray(servicesData);
+    //     let servicesDataTasks: any[] = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
+    // }
 
     // GROUPED
     let dataServices: Services[] = await se.getServicesByType(1);
