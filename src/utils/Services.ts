@@ -1,6 +1,6 @@
 
 // DATABASE
-import {PingTemplate, ServiceDataTemplate} from "../templates/DataTemplates";
+import {PfSenseServiceTemplate, PingTemplate, ServiceDataTemplate} from "../templates/DataTemplates";
 import {AxiosResponse} from "axios";
 const axios = require('axios');
 const request = require('request');
@@ -12,7 +12,7 @@ const Network = require("./Network");
 const theme = require("./ColorScheme").theme;
 const eventEmitter = require("../index").eventEmitter;
 
-import {Servers, ServicesData, Services} from "@prisma/client";
+import {Servers, ServicesData, Services, PfSenses, PfSenseServices} from "@prisma/client";
 import {config} from "../index";
 
 const Template = require("../templates/DataTemplates");
@@ -41,6 +41,19 @@ export function makeServerPingJSON (server: Servers, status: string, pingInfo: s
 export function makeServiceDataJSON (serviceObject: ServicesData, status: string[], value: number | string): ServiceDataTemplate {
     if (status.length === 0) throw new Error("Status is empty");
     return new Template.ServiceDataTemplate(serviceObject.id, serviceObject.name, value, status);
+}
+
+/**
+ * Make a JSON object that contains the pfSense data (id, ip of pfsense, id, name and optional id of the service, status)
+ * @param {PfSenses} pfSense The pfSense object
+ * @param {PfSenseServices} pfSenseService The pfSense service object
+ * @param {string[]} status The status of the pfSense service object
+ * @returns {PfSenseServiceTemplate} The JSON object
+ * @throws {Error} If the status is empty
+ */
+export function makePfSenseServiceJSON (pfSense: PfSenses, pfSenseService: PfSenseServices, status: string[]): PfSenseServiceTemplate {
+    if (status.length === 0) throw new Error("Status is empty");
+    return new Template.PfSenseServiceTemplate(pfSense.id, pfSense.ip, pfSenseService.id, pfSenseService.name, pfSenseService.pfSenseRequestId, status);
 }
 
 /**
