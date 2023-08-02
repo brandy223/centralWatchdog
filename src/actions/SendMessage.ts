@@ -4,7 +4,12 @@ import { Actors } from "@prisma/client";
 const axios = require('axios').default;
 const { theme } = require("../utils/ColorScheme");
 
-import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {
+    PfSenseServiceTemplate,
+    PingTemplate,
+    ServiceDataTemplate,
+    ServiceTestTemplate
+} from "../templates/DataTemplates";
 import {config} from "../index";
 
 let lastMessageSent = new Map<number, number>;
@@ -12,11 +17,11 @@ let lastMessageSent = new Map<number, number>;
 /**
  * Send message to a list of actors
  * @param {Actors[]} actors The actors to send the message to
- * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The message content
+ * @param {PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate} message The message content
  * @returns {Promise<void>}
  * @throws {Error} If the list of actors is empty
  */
-export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate) : Promise<void> {
+export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
     for (const actor of actors) {
@@ -41,6 +46,9 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
                 break;
             case 2:
                 if (message instanceof ServiceTestTemplate) messageContent = `Problem with Service : ${message.service.name} on Server : ${message.server.ip} ! More info in mail.`;
+                break;
+            case 3:
+                if (message instanceof PfSenseServiceTemplate) messageContent = `Problem with PfSense Service : ${message.pfSenseService.name} on Server : ${message.pfSense.ip} ! More info in mail.`;
                 break;
             case 4:
                 if (message instanceof  ServiceDataTemplate) messageContent = `Problem with Service Data : ${message.serviceData.name} : ${message.value}. Status : ${message.status.toString()}. More info in mail.`

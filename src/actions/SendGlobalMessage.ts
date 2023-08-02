@@ -1,5 +1,6 @@
 import {Services, ServicesObjects} from "@prisma/client";
 import {
+    PfSenseServiceTemplate,
     PingTemplate,
     ServiceDataTemplate,
     ServiceTestTemplate
@@ -88,11 +89,11 @@ export async function main (inCacheName: string, messageContent: string, scenari
 
 /**
  * Create the inCache name for the message and its content
- * @param { PingTemplate | ServiceTestTemplate | ServiceDataTemplate } message the message that contains the information
+ * @param { PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate } message the message that contains the information
  * @param { number } scenarioPriority the priority of the scenario
  * @returns { string[] } the inCache name and message content
  */
-export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | ServiceDataTemplate), scenarioPriority: number) : Promise<string[]> {
+export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate), scenarioPriority: number) : Promise<string[]> {
     let inCacheName: string = "";
     let messageContent: string = "";
 
@@ -114,7 +115,12 @@ export async function createInCacheNameAndMessageContent (message: (PingTemplate
             }
             break;
         case 3:
-            // TODO: TO BE IMPLEMENTED
+            if (message instanceof PfSenseServiceTemplate) {
+                inCacheName = `${message.pfSenseService.name}`;
+                if (message.pfSenseService.id) inCacheName += `_${message.pfSenseService.id}`;
+                inCacheName += `_${message.pfSense.ip}_apiCash_message_${scenarioPriority}`;
+                messageContent = `Le service pfSense ${message.pfSenseService.name} du ${message.pfSense.ip} est: ${message.status[0]}.`;
+            }
             break;
         case 4:
             if (message instanceof ServiceDataTemplate) {

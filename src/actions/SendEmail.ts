@@ -2,7 +2,12 @@
 import {Actors, StateValues} from "@prisma/client";
 import {config} from "../index";
 
-import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {
+    PfSenseServiceTemplate,
+    PingTemplate,
+    ServiceDataTemplate,
+    ServiceTestTemplate
+} from "../templates/DataTemplates";
 
 const validator = require('email-validator');
 const theme = require("../utils/ColorScheme").theme;
@@ -38,12 +43,12 @@ let lastEmailSent = new Map<number, number>;
 /**
  * Send email to a list of actors
  * @param {Actors[]} actors The actors to send the email to
- * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
+ * @param {PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate} message The type of message
  * @param {StateValues} stateValue The state value
  * @returns {Promise<void>}
  * @throws {Error} If the list of actors is empty
  */
-export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValue: StateValues) : Promise<void> {
+export async function main(actors: Actors[], message: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate, stateValue: StateValues) : Promise<void> {
     if (actors.length === 0) throw new Error("No actors given");
 
     for (const actor of actors) {
@@ -68,13 +73,13 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
 /**
  * Main function to send an email
  * @param {string} to The email receiver
- * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
+ * @param {PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate} message The type of message
  * @param {StateValues} stateValue The state value
  * @returns {Promise<void>}
  * @throws {Error} If the email is not valid
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
-export async function email(to: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValue: StateValues): Promise<void> {
+export async function email(to: string, message: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate, stateValue: StateValues): Promise<void> {
     if (!validator.validate(to)) throw new Error("Email is not valid");
     const emailToSend = await emailConstructor(to, message, stateValue);
     await sendEmail(emailToSend);
@@ -83,12 +88,12 @@ export async function email(to: string, message: PingTemplate | ServiceTestTempl
 /**
  * Email constructor
  * @param {string} email
- * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message The type of message
+ * @param {PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate} message The type of message
  * @param {StateValues} stateValue The state value
  * @returns {Promise<Email>}
  * @throws {Error} If the type of message is not valid
  */
-async function emailConstructor(email: string, message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValue: StateValues): Promise<Email> {
+async function emailConstructor(email: string, message: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate, stateValue: StateValues): Promise<Email> {
     let subject: string = "";
     let text: string = "";
     let html: string = "";
@@ -111,6 +116,16 @@ async function emailConstructor(email: string, message: PingTemplate | ServiceTe
                 const status: string = message.status[1] === "true" ? "active" : "inactive";
                 subject = `Service ${message.service.name}'s status on Server ${message.server.ip} is ${status}`;
                 text = `Service ${message.service.name}'s status on Server ${message.server.ip} is ${message.status[1]}<br><u>More info:</u> ${data}`;
+                html = `<h3>${subject}</h3><p>${text}</p>`;
+            }
+            break;
+        // PFSENSE SERVICE
+        case 3:
+            if (message instanceof PfSenseServiceTemplate) {
+                data = message.status[1];
+                const status: string = message.status[0];
+                subject = `PfSense Service ${message.pfSenseService.name}'s status on Server ${message.pfSense.ip} is ${status}`;
+                text = `PfSense Service ${message.pfSenseService.name}'s status on Server ${message.pfSense.ip} is ${message.status[1]}<br><u>More info:</u> ${data}`;
                 html = `<h3>${subject}</h3><p>${text}</p>`;
             }
             break;
