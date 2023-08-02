@@ -25,7 +25,7 @@ interface PfSense {
 interface PfSenseService {
     id: number,
     name: string,
-    pfSenseRequestId: number
+    pfSenseRequestId: number | null
 }
 
 export class PingTemplate {
@@ -58,13 +58,13 @@ export class ServiceTestTemplate {
     }
 }
 
-export class pfSenseServiceTemplate {
+export class PfSenseServiceTemplate {
     messageType: number;
     pfSense: PfSense;
     pfSenseService: PfSenseService;
     status: string[];
 
-    constructor(pfSenseId: number, pfSenseIp: string, pfSenseServiceId: number, pfSenseServiceName: string, pfSenseRequestId: number, status: string[]) {
+    constructor(pfSenseId: number, pfSenseIp: string, pfSenseServiceId: number, pfSenseServiceName: string, pfSenseRequestId: number | null, status: string[]) {
         this.messageType = 3;
         this.pfSense = { id: pfSenseId, ip: pfSenseIp };
         this.pfSenseService = { id: pfSenseServiceId, name: pfSenseServiceName, pfSenseRequestId };
