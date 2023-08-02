@@ -4,6 +4,7 @@ import { StateValues } from '@prisma/client';
 const s = require("./Servers");
 const j = require("./Jobs");
 const so = require("./ServiceObject");
+const pfsv = require("./PfSenseServices");
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient(
@@ -40,6 +41,17 @@ export async function getServerStateValues (id: number) : Promise<StateValues[]>
 export async function getJobStateValues (id: number) : Promise<StateValues[]> {
     if ((await j.getJobById(id)) === null) throw new Error("Job is not in database");
     return prisma.stateValues.findMany({where: {jobId: id}});
+}
+
+/**
+ * Get all the state values of a pfSense service
+ * @param {number} id the id of the pfSense service
+ * @returns {Promise<StateValues[]>} The state values of the pfSense Service
+ * @throws {Error} If the pfSense service is not in the database
+ */
+export async function getPfSenseServiceStateValues(id: number): Promise<StateValues[]> {
+    if ((await pfsv.getPfSenseServicesByIds([id])) === null) throw new Error("PfSense Service is not in database");
+    return prisma.stateValues.findMany({where: {pfSenseServiceId: id}});
 }
 
 /**

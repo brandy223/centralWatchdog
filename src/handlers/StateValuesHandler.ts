@@ -2,15 +2,20 @@
 import {StateValues} from "@prisma/client";
 
 import {theme} from "../utils/ColorScheme";
-import {PingTemplate, ServiceDataTemplate, ServiceTestTemplate} from "../templates/DataTemplates";
+import {
+    PfSenseServiceTemplate,
+    PingTemplate,
+    ServiceDataTemplate,
+    ServiceTestTemplate
+} from "../templates/DataTemplates";
 
 /**
  * Parse message from server and execute the corresponding action
- * @param {PingTemplate | ServiceTestTemplate | ServiceDataTemplate} message Message to parse
+ * @param {PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate} message Message to parse
  * @param {StateValues[]} stateValues State values to check
  * @returns {Promise<Map>}
  */
-export async function stateValuesHandler(message: PingTemplate | ServiceTestTemplate | ServiceDataTemplate, stateValues: StateValues[]): Promise<Map<number, [boolean, number]>> {
+export async function stateValuesHandler(message: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate, stateValues: StateValues[]): Promise<Map<number, [boolean, number]>> {
     const stateValuesMap = new Map<number, [boolean, number]>();
 
     for (const stateValue of stateValues) {
@@ -24,6 +29,9 @@ export async function stateValuesHandler(message: PingTemplate | ServiceTestTemp
                         if (message instanceof ServiceTestTemplate && message.status[1].includes(stateValue.value)) isStateValueTrue = true;
                         stateValuesMap.set(stateValue.id, [isStateValueTrue, Number(stateValue.priority)]);
                         break;
+                    case 3:
+                        if (message instanceof PfSenseServiceTemplate && message.status[0].includes(stateValue.value)) isStateValueTrue = true;
+                        stateValuesMap.set(stateValue.id, [isStateValueTrue, Number(stateValue.priority)]);
                 }
                 break;
             // * INFERIOR INT
