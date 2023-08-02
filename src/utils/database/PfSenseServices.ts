@@ -1,4 +1,4 @@
-import {PfSenseServices} from "@prisma/client";
+import {PfSenseAndServices, PfSenseServices} from "@prisma/client";
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient(
@@ -14,4 +14,12 @@ const prisma = new PrismaClient(
  */
 export async function getPfSenseServicesByIds(ids: number[]) : Promise<PfSenseServices[]> {
     return prisma.pfSenseServices.findMany({ where: { id: { in: ids }}});
+}
+
+/**
+ * Get all pfSenseServices assigned to a pfSense
+ * @returns {Promise<PfSenseAndServices[]>} The pfSenseServices
+ */
+export async function getAllPfSenseServicesAssignedToAPfSense(): Promise<PfSenseAndServices[]> {
+    return prisma.pfSenseAndServices.findMany();
 }
