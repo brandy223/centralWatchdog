@@ -71,7 +71,7 @@ async function main(): Promise<void> {
 
     const corsOptions = {
         // * WHITELIST
-        origin: serversIpAddr,
+        origin: "*",
         methods: ['GET', 'POST'],
         optionsSuccessStatus: 200,
         credentials: true
@@ -202,7 +202,7 @@ async function main(): Promise<void> {
             socketListenersMap.delete(socket);
         });
 
-        socket.on("main_connection", async (ip: string): Promise<void> => {
+        socket.on("main_connection",(ip: string): void => {
            console.log(theme.warningBright("New Main Connection from " + ip));
            socket.emit("main_connection_ack", "OK");
            socket.join("main");
@@ -210,7 +210,12 @@ async function main(): Promise<void> {
            nodeServersMainSockets.set(socket.id, ip);
         });
 
-        socket.on("test_connection", async (message: string): Promise<void> => {
+        socket.on("browser_connection",(): void => {
+            console.log(theme.warningBright("New Browser Connection from " + connectedServerIp));
+            socket.join("main");
+        });
+
+        socket.on("test_connection",(message: string): void => {
             socket.emit("test_connection_ack", "OK");
             console.log(theme.debug("Test connection from " + connectedServerIp + " : " + message));
         });
