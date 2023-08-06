@@ -252,7 +252,7 @@ async function main(): Promise<void> {
     });
 
     eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
-        const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.serviceData.id, message.serviceData.name, message.value, message.status);
+        const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.service.id, message.service.name, message.serviceData.id, message.serviceData.name, message.value, message.status);
         await messageHandler(refactoredObjectMessage);
     });
     eventEmitter.on("pfsense_service_state_broadcast", async (message: any): Promise<void> => {

@@ -32,15 +32,16 @@ export function makeServerPingJSON (server: Servers, status: string, pingInfo: s
 
 /**
  * Make a JSON object that contains the id of the service object, its name its status and its value
- * @param {ServicesData} serviceObject The service object
+ * @param {Services} service The service object
+ * @param {ServicesData} serviceDataObject The service data object
  * @param {string[]} status The status of the service object
  * @param {number | string} value The value of the service object
  * @returns {ServiceDataTemplate} The JSON object
  * @throws {Error} If the status is empty
  */
-export function makeServiceDataJSON (serviceObject: ServicesData, status: string[], value: number | string): ServiceDataTemplate {
+export function makeServiceDataJSON (service: Services, serviceDataObject: ServicesData, status: string[], value: number | string): ServiceDataTemplate {
     if (status.length === 0) throw new Error("Status is empty");
-    return new Template.ServiceDataTemplate(serviceObject.id, serviceObject.name, value, status);
+    return new Template.ServiceDataTemplate(service.id, service.name, serviceDataObject.id, serviceDataObject.name, value, status);
 }
 
 /**
@@ -99,38 +100,6 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
 }
 
 /**
- * Put in functions the process to get the value of the service data from url and broadcast it
- * @param {ServicesData[]} objects The list of services data to watch
- * @returns {Promise<any[]>} The list of functions to execute
- */
-export async function getServiceDataValueFunctionsInArray(objects: ServicesData[]): Promise<any[]> {
-    if (objects.length === 0) {
-        console.log(theme.warning("No service objects found"));
-        // TODO: need to verify in index main file when this happens
-        return [];
-    }
-    const getServiceObjectValueFunctions: (() => void)[] = [];
-    for (const obj of objects) {
-        const serviceObject = (obj: ServicesData): (() => void) => {
-            return async (): Promise<void> => {
-                if (obj.url === null || obj.url === "") return;
-                const axiosRes: AxiosResponse = await axios.get(obj.url);
-                console.log(axiosRes.data);
-                const status: string[] = [axiosRes.status === 200 ? "OK" : "KO"];
-                // ADD Another line depending on state value ??
-                const res: ServiceDataTemplate = await makeServiceDataJSON(obj, status, axiosRes.data);
-                eventEmitter.emit("service_data_state_broadcast", res);
-                console.log(theme.bgInfo("Message to be send in broadcast : "));
-                console.log(res);
-            }
-        }
-        const serviceObjectFunction = serviceObject(obj);
-        getServiceObjectValueFunctions.push(serviceObjectFunction);
-    }
-    return getServiceObjectValueFunctions;
-}
-
-/**
  * Put in functions the process to get the value of the service data from a group, get the value and broadcast it
  * @param {Services[]} services The list of services to watch (of type 1)
  * @returns {Promise<any[]>} The list of functions to execute
@@ -157,7 +126,7 @@ export async function getServiceDataValueFromServiceFunctionsInArray(services: S
                     for (const propertyName in axiosRes.data) {
                         // Assign value to service data
                         if (serviceData.nameInResponse !== propertyName) continue;
-                        const res: ServiceDataTemplate = await makeServiceDataJSON(serviceData, status, axiosRes.data[propertyName]);
+                        const res: ServiceDataTemplate = await makeServiceDataJSON(service, serviceData, status, axiosRes.data[propertyName]);
                         eventEmitter.emit("service_data_state_broadcast", res);
                         console.log(theme.bgInfo("Message to be send in broadcast : "));
                         console.log(res);

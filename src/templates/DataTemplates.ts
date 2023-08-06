@@ -74,12 +74,14 @@ export class PfSenseServiceTemplate {
 
 export class ServiceDataTemplate {
     messageType: number;
+    service: Service;
     serviceData: ServiceData;
     value: number | string;
     status: string[];
 
-    constructor(serviceDataId: number, serviceDataName: string, value: number | string, status: string[]) {
+    constructor(serviceId: number, serviceName: string, serviceDataId: number, serviceDataName: string, value: number | string, status: string[]) {
         this.messageType = 4;
+        this.service = { id: serviceId, name: serviceName };
         this.serviceData = { id: serviceDataId, name: serviceDataName };
         this.value = value;
         this.status = status;
