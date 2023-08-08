@@ -20,7 +20,7 @@ export async function getAllServicesData () : Promise<ServicesData[]> {
  * @param {number[]} ids The ids of the services' data
  * @returns {Promise<ServicesData[]>} The services data
  */
-export async function getServicesDataById (ids: number[]) : Promise<ServicesData[]> {
+export async function getServicesDataByIds (ids: number[]) : Promise<ServicesData[]> {
     return prisma.servicesData.findMany({where: {id: {in: ids}}});
 }
 
@@ -31,5 +31,5 @@ export async function getServicesDataById (ids: number[]) : Promise<ServicesData
  */
 export async function getServicesDataByServiceId (id: number) : Promise<ServicesData[]> {
     const servicesDataIds: number[] = (await prisma.servicesAndData.findMany({where: {serviceId: id}})).map((serviceData: ServicesAndData) => serviceData.dataId);
-    return await getServicesDataById(servicesDataIds);
+    return await getServicesDataByIds(servicesDataIds);
 }
