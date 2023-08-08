@@ -1,4 +1,3 @@
-import {pfSenseServicesWatchdog} from "./utils/Services";
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -29,12 +28,9 @@ const { messageHandler } = require('./handlers/MessageHandler');
 import {
     Jobs,
     PfSenseAndServices,
-    PfSenses,
-    PfSenseServices,
     Servers,
     ServersOfJobs,
     Services,
-    ServicesData
 } from "@prisma/client";
 import {Socket} from "socket.io";
 import {
@@ -198,19 +194,6 @@ async function main(): Promise<void> {
         eventEmitter.on("service_data_state_broadcast", serviceDataValueListener);
     });
 
-    eventEmitter.on("server_connection_state", async (message: any): Promise<void> => {
-        const refactoredObjectMessage: PingTemplate = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
-        await messageHandler(refactoredObjectMessage);
-    });
-    eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
-        const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.service.id, message.service.name, message.serviceData.id, message.serviceData.name, message.value, message.status);
-        await messageHandler(refactoredObjectMessage);
-    });
-    eventEmitter.on("pfsense_service_state_broadcast", async (message: any): Promise<void> => {
-        const refactoredObjectMessage: PfSenseServiceTemplate = new PfSenseServiceTemplate(message.pfSense.id, message.pfSense.ip, message.pfSenseService.id, message.pfSenseService.name, message.pfSenseService.pfSendeRequestId, message.status);
-        await messageHandler(refactoredObjectMessage);
-    });
-
     server.listen(config.mainServer.port, (): void => {
         console.log(`Server listening on port ${config.mainServer.port}`);
     });
@@ -252,9 +235,24 @@ async function main(): Promise<void> {
         }
         if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
     });
+
+    // eventEmitter.on("server_connection_state", async (message: any): Promise<void> => {
+    //     const refactoredObjectMessage: PingTemplate = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
+    //     await messageHandler(refactoredObjectMessage);
+    // });
+    eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
+        const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.service.id, message.service.name, message.serviceData.id, message.serviceData.name, message.value, message.status);
+        await messageHandler(refactoredObjectMessage);
+    });
+    eventEmitter.on("pfsense_service_state_broadcast", async (message: any): Promise<void> => {
+        const refactoredObjectMessage: PfSenseServiceTemplate = new PfSenseServiceTemplate(message.pfSense.id, message.pfSense.ip, message.pfSenseService.id, message.pfSenseService.name, message.pfSenseService.pfSendeRequestId, message.status);
+        await messageHandler(refactoredObjectMessage);
+    });
 }
 
-main();
+main().then(() => {
+    console.log("Program started");
+});
 
 /**
  * Update the jobs list in cache
