@@ -90,6 +90,7 @@ async function main(): Promise<void> {
     const serverConnectionsInfo: Map<string, number[]> = new Map();
     const socketListenersMap: Map<Socket, (data: any) => void> = new Map();
 
+    // SERVERS
     jobsIds = cache.get("jobsIds") ?? [];
     serversIds = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
     serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
@@ -110,7 +111,16 @@ async function main(): Promise<void> {
         console.log(theme.error("Error with socket"));
     });
 
+    let nmbOfConnections: number = 0;
+
     io.on('connection', (socket: Socket): void => {
+        console.log(nodeServersMainSockets);
+        console.log(socketListenersMap.size);
+        nmbOfConnections++;
+        console.log("\n\nNumber of connections: " + nmbOfConnections);
+
+
+
         const serverConnectionListener = (message: any) => {
             socket.to("main").emit("room_broadcast", message);
         }
@@ -188,6 +198,10 @@ async function main(): Promise<void> {
         eventEmitter.on("service_data_state_broadcast", serviceDataValueListener);
     });
 
+    eventEmitter.on("server_connection_state", async (message: any): Promise<void> => {
+        const refactoredObjectMessage: PingTemplate = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
+        await messageHandler(refactoredObjectMessage);
+    });
     eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
         const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.service.id, message.service.name, message.serviceData.id, message.serviceData.name, message.value, message.status);
         await messageHandler(refactoredObjectMessage);
@@ -202,7 +216,7 @@ async function main(): Promise<void> {
     });
 
     cache.on("set", async (key: string, value: (number | string)[]): Promise<void> => {
-       switch(key) {        // * In case other keys are added
+       switch(key) {
            case "jobsIds":
                clearInterval(checkOnServers);
                jobsIds = value as number[];
