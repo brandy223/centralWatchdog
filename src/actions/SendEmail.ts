@@ -76,11 +76,13 @@ export async function main(actors: Actors[], message: PingTemplate | ServiceTest
  * @param {PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate} message The type of message
  * @param {StateValues} stateValue The state value
  * @returns {Promise<void>}
- * @throws {Error} If the email is not valid
  * @example of data: {server: { id: 1, ipAddr: "192.168.10.58" }, status: "KO", statusInfo: ["false", "0 out of 10"]"}
  */
 export async function email(to: string, message: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate, stateValue: StateValues): Promise<void> {
-    if (!validator.validate(to)) throw new Error("Email is not valid");
+    if (!validator.validate(to)) {
+        console.log(theme.error(`Email ${to} is not valid`));
+        return;
+    }
     const emailToSend = await emailConstructor(to, message, stateValue);
     await sendEmail(emailToSend);
 }

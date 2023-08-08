@@ -29,10 +29,12 @@ export async function executeTimedTask(functions: (() => void)[], intervals: num
  * Clear all intervals in an array
  * @param {any[]} intervalsTab Array of setIntervals functions
  * @return {void}
- * @throws {Error} If the array is empty
  */
 export function clearAllIntervals(intervalsTab: any[]): void {
-    if (intervalsTab.length === 0) throw new Error("The intervals array is empty");
+    if (intervalsTab.length === 0) {
+        console.log("The array is empty");
+        return;
+    }
     for (const interval of intervalsTab) {
         clearInterval(interval);
     }

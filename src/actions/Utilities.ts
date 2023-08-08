@@ -1,12 +1,12 @@
 import {AxiosResponse} from "axios";
 import {config} from "../index";
+import {theme} from "../utils/ColorScheme";
 const axios = require('axios');
 
 /**
  * Verify if someone is free to receive a message / mail
  * @param {number} id The id of the person
  * @returns {Promise<boolean>} True if the person is free, false otherwise
- * @throws {Error} If the person ID does not exist
  */
 export async function isPersonFree (id: number) : Promise<boolean> {
     const today: Date = new Date();
@@ -20,7 +20,10 @@ export async function isPersonFree (id: number) : Promise<boolean> {
         .replace("${id}", id.toString());
     const res: AxiosResponse<any> = await axios.get(apiUrl);
 
-    if (JSON.stringify(res.data).includes("undefined")) throw new Error("Person ID does not exist");
+    if (JSON.stringify(res.data).includes("undefined")) {
+        console.log(theme.warning("Person ID does not exist"));
+        return false;
+    }
     return !JSON.stringify(res.data).includes("Absent");
 }
 
