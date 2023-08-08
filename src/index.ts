@@ -1,3 +1,4 @@
+import {pfSenseServicesWatchdog} from "./utils/Services";
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -13,6 +14,7 @@ const sd = require('./utils/database/ServiceData');
 const j = require('./utils/database/Jobs');
 const pfs = require('./utils/database/PfSenses');
 const pfsv = require('./utils/database/PfSenseServices');
+const svd = require('./utils/database/ServiceData');
 const misc = require('./utils/database/Misc');
 
 // UTILS
@@ -57,20 +59,21 @@ export const cache = new NodeCache({
 app.use(express.json());
 
 async function main(): Promise<void> {
+    let jobsIds: number[] = [];
+    let serversIds: number[] = [];
+    let serversIpAddr: string[] = [];
+
+    let pfSensesIds: number[] = [];
+    let dataServicesIds: number[] = [];
+    let servicesDataWrapper: any[] = [];
+    let servicesDataTasks: any[] = [];
+
     await misc.centralServerDatabaseInit();
-
-    let jobsIds: number[] = (await j.getAllJobs()).map((job: Jobs) => job.id);
-    let serversIds: number[] = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
-    let serversIpAddr: string[] = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
-    console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
-    cache.set("jobsIds", jobsIds, config.jobs.cache_duration);
-
-    const jobsInterval = setInterval((): void => {
-        updateJobsListInCache();
-    }, config.jobs.check_period);
+    await updateJobsListInCache();
+    jobsIds = cache.get("jobsIds") ?? [];
 
     const corsOptions = {
-        // * WHITELIST
+        // * WHITELIST - Not used because of browser connection
         origin: "*",
         methods: ['GET', 'POST'],
         optionsSuccessStatus: 200,
@@ -85,69 +88,33 @@ async function main(): Promise<void> {
 
     const nodeServersMainSockets: Map<string, string> = new Map();
     const serverConnectionsInfo: Map<string, number[]> = new Map();
-    let checkOnServer = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
     const socketListenersMap: Map<Socket, (data: any) => void> = new Map();
 
-    // PFSENSES
-    let test = setInterval(async (): Promise<void> => {
-        let assignedPfSenseServices: PfSenseAndServices[] = await pfsv.getAllPfSenseServicesAssignedToAPfSense();
-        let pfSenseIds: number[] = await ArrayUtils.getUniqueValuesFromArray(assignedPfSenseServices.map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId));
-        let pfSenses: PfSenses[] = await pfs.getPfSensesByIds(pfSenseIds);
-        for (let pfSense of pfSenses) {
-            const pfSenseData: any = await ServicesUtils.getPfSenseData(pfSense.ip);
-            // if (pfSenseData === {}) continue;
-            const pfSenseServices: PfSenseServices[] = await pfsv.getPfSenseServicesByIds(assignedPfSenseServices.filter((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId === pfSense.id).map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseServiceId));
-            for (let pfSenseService of pfSenseServices) {
-                let hitData: number[] = [];
-                let correspondingIndex: number = 0;
-                for (const [index, value] of pfSenseData.data.entries()) {
-                    if (value.name === pfSenseService.name) hitData.push(index);
-                }
-                if (hitData.length === 0) return;
-                if (hitData.length > 1) {
-                    if (pfSenseService.pfSenseRequestId === null) return;
-                    for (let index of hitData) {
-                        if (pfSenseData.data[index].id === pfSenseService.pfSenseRequestId) {
-                            correspondingIndex = pfSenseData.data[index].id;
-                            break;
-                        }
-                    }
-                } else correspondingIndex = hitData[0];
+    jobsIds = cache.get("jobsIds") ?? [];
+    serversIds = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
+    serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
+    let checkOnServers = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
 
-                const status: string[] = [pfSenseData.data[correspondingIndex].status, pfSenseData.data[correspondingIndex]?.enabled];
-                const pfSenseServiceData: PfSenseServiceTemplate = await ServicesUtils.makePfSenseServiceJSON(pfSense, pfSenseService, status);
-                console.log(theme.bgInfo("Message to be send in broadcast : "));
-                console.log(pfSenseServiceData);
-                eventEmitter.emit("pfsense_service_state_broadcast", pfSenseServiceData);
-            }
-        }
-    }, config.pfSense.check_period);
+    // PF SENSES
+    await updatePfSensesListInCache();
+    pfSensesIds = cache.get("pfSensesIds") ?? [];
+    let checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(pfSensesIds);
 
     // SERVICES DATA
-
-    // NON GROUPED
-    // let servicesData: ServicesData[] = (await sd.getAllServicesData()).filter((serviceData: ServicesData) => (serviceData.url !== null && serviceData.url !== ""));
-    // if (servicesData.length !== 0) {
-    //     let servicesDataWrapper: any[] = await ServicesUtils.getServiceDataValueFunctionsInArray(servicesData);
-    //     let servicesDataTasks: any[] = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
-    // }
-
-    // GROUPED
-    let dataServices: Services[] = await se.getServicesByType(1);
-    if (dataServices.length !== 0) {
-        let servicesGroupedDataWrapper: any[] = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(dataServices);
-        let servicesGroupedDataTasks: any[] = await Timer.executeTimedTask(servicesGroupedDataWrapper, [config.servicesData.check_period]);
-    }
+    await updateDataServicesInCache();
+    dataServicesIds = cache.get("dataServicesIds") ?? [];
+    servicesDataWrapper = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(await se.getServicesByIds(dataServicesIds));
+    if (servicesDataWrapper[0] !== -1) servicesDataTasks = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
 
     io.on("error", () => {
-        console.log(theme.error("Error"));
+        console.log(theme.error("Error with socket"));
     });
 
     io.on('connection', (socket: Socket): void => {
-        const serverNotConnectedListener = (message: any) => {
+        const serverConnectionListener = (message: any) => {
             socket.to("main").emit("room_broadcast", message);
         }
-        socketListenersMap.set(socket, serverNotConnectedListener);
+        socketListenersMap.set(socket, serverConnectionListener);
 
         const serviceDataValueListener = (message: any) => {
             socket.to("main").emit("room_broadcast", message);
@@ -166,10 +133,10 @@ async function main(): Promise<void> {
         socket.on("message", async (message: any): Promise<void> => {
             console.log(message);
             socket.to("main").emit("room_broadcast", message);
-            console.log(theme.info("Message's broadcast"));
+            console.log(theme.info("Message's broadcasted"));
 
             // Message Parsing
-            let refactoredMessage: PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate;
+            let refactoredMessage: PingTemplate | ServiceTestTemplate;
             switch (message.messageType) {
                 case 1:
                     refactoredMessage = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
@@ -179,13 +146,9 @@ async function main(): Promise<void> {
                     refactoredMessage = new ServiceTestTemplate(message.service.id, message.service.name, message.server.id, message.server.ip, message.job.id, message.status);
                     await messageHandler(refactoredMessage);
                     break;
-                // case 3:
-                //     // TODO: TO BE IMPLEMENTED
-                //     break;
-                // case 4:
-                //     const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.serviceData.id, message.serviceData.name, message.value, message.status);
-                //     await messageHandler(refactoredObjectMessage);
-                //     break;
+                default:
+                    console.log(theme.error("Unknown message type"));
+                    break;
             }
         });
 
@@ -196,7 +159,7 @@ async function main(): Promise<void> {
             }
             else console.log(theme.warning("Client " + socket.id + " disconnected"));
 
-            eventEmitter.off("server_not_connected_state", socketListenersMap.get(socket));
+            eventEmitter.off("server_connection_state", socketListenersMap.get(socket));
             eventEmitter.off("service_data_state_broadcast", socketListenersMap.get(socket));
             eventEmitter.off("pfsense_service_state_broadcast", socketListenersMap.get(socket));
             socketListenersMap.delete(socket);
@@ -220,35 +183,9 @@ async function main(): Promise<void> {
             console.log(theme.debug("Test connection from " + connectedServerIp + " : " + message));
         });
 
-        eventEmitter.on("server_not_connected_state", serverNotConnectedListener);
+        eventEmitter.on("server_connection_state", serverConnectionListener);
         eventEmitter.on("pfsense_service_state_broadcast", pfSenseServiceListener);
         eventEmitter.on("service_data_state_broadcast", serviceDataValueListener);
-    });
-
-    server.listen(config.mainServer.port, (): void => {
-        console.log(`Server listening on port ${config.mainServer.port}`);
-    });
-
-    cache.on("set", async (key: string, value: (number | string)[]): Promise<void> => {
-       switch(key) {        // * In case other keys are added
-           case "jobsIds":
-               clearInterval(checkOnServer);
-               jobsIds = value as number[];
-               serversIds = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
-               serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
-               checkOnServer = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
-               break;
-       }
-    });
-
-    cache.on("expired", async (key: string, value: (number | string)[]): Promise<void> => {
-        switch (key) {
-            case "jobsIds":
-                jobsIds = (await j.getAllJobs()).map((job: Jobs) => job.id);
-                cache.set("jobsIds", jobsIds, config.jobs.cache_duration);
-                break;
-        }
-        if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
     });
 
     eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
@@ -258,6 +195,48 @@ async function main(): Promise<void> {
     eventEmitter.on("pfsense_service_state_broadcast", async (message: any): Promise<void> => {
         const refactoredObjectMessage: PfSenseServiceTemplate = new PfSenseServiceTemplate(message.pfSense.id, message.pfSense.ip, message.pfSenseService.id, message.pfSenseService.name, message.pfSenseService.pfSendeRequestId, message.status);
         await messageHandler(refactoredObjectMessage);
+    });
+
+    server.listen(config.mainServer.port, (): void => {
+        console.log(`Server listening on port ${config.mainServer.port}`);
+    });
+
+    cache.on("set", async (key: string, value: (number | string)[]): Promise<void> => {
+       switch(key) {        // * In case other keys are added
+           case "jobsIds":
+               clearInterval(checkOnServers);
+               jobsIds = value as number[];
+               serversIds = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
+               serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
+               checkOnServers = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
+               break;
+           case "pfSensesIds":
+               clearInterval(checkOnPfSenses);
+               pfSensesIds = value as number[];
+               checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(pfSensesIds);
+               break;
+           case "dataServicesIds":
+               await Timer.clearAllIntervals(servicesDataTasks);
+               dataServicesIds = value as number[];
+               servicesDataWrapper = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(await svd.getServicesDataByIds(dataServicesIds));
+               if (servicesDataWrapper[0] !== -1) servicesDataTasks = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
+               break;
+       }
+    });
+
+    cache.on("del", async (key: string, value: (number | string)[]): Promise<void> => {
+        switch (key) {
+            case "jobsIds":
+                await updateJobsListInCache();
+                break;
+            case "pfSensesIds":
+                await updatePfSensesListInCache();
+                break;
+            case "dataServicesIds":
+                await updateDataServicesInCache();
+                break;
+        }
+        if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
     });
 }
 
@@ -271,5 +250,29 @@ async function updateJobsListInCache(): Promise<void> {
     const jobsIds: number[] = (await j.getAllJobs()).map((job: Jobs) => job.id);
     if (cache.get("jobsIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("jobsIds"), jobsIds))) return;
     cache.set("jobsIds", jobsIds, config.jobs.cache_duration);
-    console.log(theme.debug(`New jobs IDs: ${JSON.stringify(jobsIds)}`));
+    console.log(theme.debug(`Jobs ids updated in cache`));
+}
+
+/**
+ * Update the pfSenses list in cache
+ * @returns {Promise<void>}
+ */
+async function updatePfSensesListInCache(): Promise<void> {
+    const assignedPfSenseServices: PfSenseAndServices[] = await pfsv.getAllPfSenseServicesAssignedToAPfSense();
+    const pfSenseIds: number[] = await ArrayUtils.getUniqueValuesFromArray(assignedPfSenseServices.map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId));
+    if (cache.get("pfSensesIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("pfSensesIds"), pfSenseIds))) return;
+    cache.set("pfSensesIds", pfSenseIds, config.pfSense.cache_duration);
+    console.log(theme.debug(`PfSenses ids updated in cache`));
+}
+
+/**
+ * Update the data services in cache
+ * @returns {Promise<void>}
+ */
+async function updateDataServicesInCache(): Promise<void> {
+    const dataServices: Services[] = await se.getServicesByType(1);
+    const dataServicesIds: number[] = dataServices.map((service: Services) => service.id);
+    if (cache.get("dataServicesIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("dataServicesIds"), dataServicesIds))) return;
+    cache.set("dataServicesIds", dataServicesIds, config.servicesData.cache_duration);
+    console.log(theme.debug(`Services Data updated in cache`));
 }

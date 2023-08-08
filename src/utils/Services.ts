@@ -2,18 +2,21 @@
 // DATABASE
 import {PfSenseServiceTemplate, PingTemplate, ServiceDataTemplate} from "../templates/DataTemplates";
 import {AxiosResponse} from "axios";
+import {Servers, ServicesData, Services, PfSenses, PfSenseServices, PfSenseAndServices} from "@prisma/client";
+import {config} from "../index";
+
 const axios = require('axios');
 const request = require('request');
 
 const s = require("./database/Servers");
 const sd = require("./database/ServiceData");
+const pfs = require("./database/PfSenses");
+const pfsv = require("./database/PfSenseServices");
+const ServicesUtils = require("./Services");
 
 const Network = require("./Network");
 const theme = require("./ColorScheme").theme;
 const eventEmitter = require("../index").eventEmitter;
-
-import {Servers, ServicesData, Services, PfSenses, PfSenseServices} from "@prisma/client";
-import {config} from "../index";
 
 const Template = require("../templates/DataTemplates");
 
@@ -63,40 +66,95 @@ export function makePfSenseServiceJSON (pfSense: PfSenses, pfSenseService: PfSen
  * @param {string[]} serversIpAddr The list of servers IP addresses to watch
  * @returns {NodeJS.Timeout} The interval
  */
-export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, number[]>, serversIpAddr: string[]): Promise<NodeJS.Timeout> {
+export function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, number[]>, serversIpAddr: string[]): NodeJS.Timer {
     return setInterval(async (): Promise<void> => {
+        if (serversIpAddr.length === 0) {
+            console.log(theme.warning("No servers found to watch"));
+            return;
+        }
         for (const serverIP of serversIpAddr) {
+            let flag: boolean = false;
             const numberOfConnections: number = Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [0])[0];
             if ((serverConnectionsInfo.get(serverIP) === undefined)
                 || (numberOfConnections === 0)
                 || (Math.abs((Array.from(serverConnectionsInfo.get(serverIP)?.values() ?? [Date.now()])[1]) - Date.now()) > config.nodeServers.max_time_between_connections)) {
 
+                flag = true;
                 if (numberOfConnections === 0) console.log(theme.warningBright("Server " + serverIP + " has 0 connections, trying to ping..."));
                 else console.log(theme.warningBright("Server " + serverIP + " has not connected for a while, trying to ping..."));
-                const isUp: string[] = await Network.ping(serverIP);
-                const status: string = isUp[0] ? "OK" : "KO";
-                if (!isUp[0]) console.log(theme.errorBright("Server " + serverIP + " is down!"));
-                else {
+            }
+            const isUp: string[] = await Network.ping(serverIP);
+            const status: string = isUp[0] ? "OK" : "KO";
+            if (!isUp[0]) console.log(theme.errorBright("Server " + serverIP + " is down!"));
+            else {
+                if (flag) {
                     isUp.push("Problem with NodeJS App probably");
                     console.log(theme.warning("Server " + serverIP + " is up! But not sending any data..."));
+                } else {
+                    console.log(theme.warning("Server " + serverIP + " is up! No problem detected..."));
                 }
-                const server: Servers = await s.getServerByIP(serverIP);
-                if (server === null) throw new Error("Server not found in database");
-                const messageToSend: PingTemplate = await makeServerPingJSON(
-                    {
-                        "id": server.id,
-                        "ipAddr": server.ipAddr,
-                        "type": server.type,
-                        "port": server.port,
-                        "priority": server.priority
-                    }, status, isUp
-                )
-                console.log(theme.bgDebug("Broadcasting message: "));
-                console.log(messageToSend);
-                eventEmitter.emit("server_not_connected_state", messageToSend);
             }
+            const server: Servers = await s.getServerByIP(serverIP);
+            if (server === null) throw new Error("Server not found in database");
+            const messageToSend: PingTemplate = await makeServerPingJSON(
+                {
+                    "id": server.id,
+                    "ipAddr": server.ipAddr,
+                    "type": server.type,
+                    "port": server.port,
+                    "priority": server.priority
+                }, status, isUp
+            )
+            console.log(theme.bgDebug("Broadcasting message: "));
+            console.log(messageToSend);
+            eventEmitter.emit("server_connection_state", messageToSend);
         }
     }, config.nodeServers.check_period);
+}
+
+/**
+ * Watch for pfsense services and send their data
+ * @param {number[]} pfSenseIds The list of pfSense ids to watch
+ * @returns {NodeJS.Timeout} The interval
+ */
+export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
+    return setInterval(async (): Promise<void> => {
+        if (pfSenseIds.length === 0) {
+            console.log("No pfSensesIds in cache");
+            return;
+        }
+        const assignedPfSenseServices: PfSenseAndServices[] = await pfsv.getAllPfSenseServicesAssignedToAPfSense();
+        const pfSenses: PfSenses[] = await pfs.getPfSensesByIds(pfSenseIds);
+        for (let pfSense of pfSenses) {
+            const pfSenseData: any = await ServicesUtils.getPfSenseData(pfSense.ip);
+            // if (pfSenseData === {}) continue;
+            // TODO: change this
+            const pfSenseServices: PfSenseServices[] = await pfsv.getPfSenseServicesByIds(assignedPfSenseServices.filter((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId === pfSense.id).map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseServiceId));
+            for (let pfSenseService of pfSenseServices) {
+                let hitData: number[] = [];
+                let correspondingIndex: number = 0;
+                for (const [index, value] of pfSenseData.data.entries()) {
+                    if (value.name === pfSenseService.name) hitData.push(index);
+                }
+                if (hitData.length === 0) return;
+                if (hitData.length > 1) {
+                    if (pfSenseService.pfSenseRequestId === null) return;
+                    for (let index of hitData) {
+                        if (pfSenseData.data[index].id === pfSenseService.pfSenseRequestId) {
+                            correspondingIndex = pfSenseData.data[index].id;
+                            break;
+                        }
+                    }
+                } else correspondingIndex = hitData[0];
+
+                const status: string[] = [pfSenseData.data[correspondingIndex].status, pfSenseData.data[correspondingIndex]?.enabled];
+                const pfSenseServiceData: PfSenseServiceTemplate = await ServicesUtils.makePfSenseServiceJSON(pfSense, pfSenseService, status);
+                console.log(theme.bgInfo("Message to be send in broadcast : "));
+                console.log(pfSenseServiceData);
+                eventEmitter.emit("pfsense_service_state_broadcast", pfSenseServiceData);
+            }
+        }
+    }, config.pfSense.check_period);
 }
 
 /**
@@ -105,10 +163,9 @@ export async function serverConnectionsWatchdog(serverConnectionsInfo: Map<strin
  * @returns {Promise<any[]>} The list of functions to execute
  */
 export async function getServiceDataValueFromServiceFunctionsInArray(services: Services[]): Promise<any[]> {
-    if (services.length === 0) {
+    if (services === undefined || services.length === 0) {
         console.log(theme.warning("No services found"));
-        // TODO: need to verify in index main file when this happens
-        return [];
+        return [-1];
     }
     const getServiceDataValueFunctions: (() => void)[] = [];
     for (const s of services) {
