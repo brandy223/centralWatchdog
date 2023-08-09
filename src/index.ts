@@ -108,7 +108,7 @@ async function main(): Promise<void> {
 
     io.on('connection', (socket: Socket): void => {
         nmbOfConnections++;
-        console.log("\n\nNumber of connections: " + nmbOfConnections);
+        console.log("\nNumber of connections: " + nmbOfConnections);
 
         const connectedServerIp: string = socket.handshake.address.substring(7);
         serverConnectionsInfo.set(connectedServerIp, [((Array.from(serverConnectionsInfo.get(connectedServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
@@ -210,7 +210,7 @@ async function main(): Promise<void> {
 }
 
 main().then(() => {
-    console.log("Program started");
+    console.log(theme.info("Main server started"));
 });
 
 /**
