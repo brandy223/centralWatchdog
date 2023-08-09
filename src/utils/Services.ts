@@ -16,9 +16,11 @@ const ServicesUtils = require("./Services");
 
 const Network = require("./Network");
 const theme = require("./ColorScheme").theme;
-const eventEmitter = require("../index").eventEmitter;
 
 const Template = require("../templates/DataTemplates");
+
+import { io } from "../index";
+import {messageHandler} from "../handlers/MessageHandler";
 
 /**
  * Make a JSON object that contains the id of the server, its IP address and its status
@@ -107,7 +109,8 @@ export function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, num
             )
             console.log(theme.bgDebug("Broadcasting message: "));
             console.log(messageToSend);
-            eventEmitter.emit("server_connection_state", messageToSend);
+            io.to("main").emit("room_broadcast", messageToSend);
+            await messageHandler(messageToSend);
         }
     }, config.nodeServers.check_period);
 }
@@ -151,7 +154,8 @@ export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
                 const pfSenseServiceData: PfSenseServiceTemplate = await ServicesUtils.makePfSenseServiceJSON(pfSense, pfSenseService, status);
                 console.log(theme.bgInfo("Message to be send in broadcast : "));
                 console.log(pfSenseServiceData);
-                eventEmitter.emit("pfsense_service_state_broadcast", pfSenseServiceData);
+                io.to("main").emit("room_broadcast", pfSenseServiceData);
+                await messageHandler(pfSenseServiceData);
             }
         }
     }, config.pfSense.check_period);
@@ -184,9 +188,10 @@ export async function getServiceDataValueFromServiceFunctionsInArray(services: S
                         // Assign value to service data
                         if (serviceData.nameInResponse !== propertyName) continue;
                         const res: ServiceDataTemplate = await makeServiceDataJSON(service, serviceData, status, axiosRes.data[propertyName]);
-                        eventEmitter.emit("service_data_state_broadcast", res);
                         console.log(theme.bgInfo("Message to be send in broadcast : "));
                         console.log(res);
+                        io.to("main").emit("room_broadcast", res);
+                        await messageHandler(res);
                     }
                 }
             }

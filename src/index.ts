@@ -3,9 +3,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 export const config = require("../config.json").config;
 
-const events = require('events');
-export const eventEmitter = new events.EventEmitter();
-
 // DATABASE
 const s = require('./utils/database/Servers');
 const se = require('./utils/database/Services');
@@ -34,17 +31,30 @@ import {
 } from "@prisma/client";
 import {Socket} from "socket.io";
 import {
-    PfSenseServiceTemplate,
     PingTemplate,
-    ServiceDataTemplate,
     ServiceTestTemplate
 } from "./templates/DataTemplates";
 
-// SERVER
+    //* SERVER
 const express = require('express');
 const app = express();
 const http = require('http');
 const { Server } = require("socket.io");
+app.use(express.json());
+const corsOptions = {
+    // * WHITELIST - Not used because of browser connection
+    origin: "*",
+    methods: ['GET', 'POST'],
+    optionsSuccessStatus: 200,
+    credentials: true
+}
+const server = http.createServer(app);
+export const io = new Server(server, {
+    cors: corsOptions,
+    allowEIO3: true, // false by default
+});
+
+    //* CACHE
 const NodeCache = require("node-cache");
 export const cache = new NodeCache({
     stdTTL: config.cache.default_ttl,
@@ -52,8 +62,9 @@ export const cache = new NodeCache({
     deleteOnExpire: config.cache.deleteOnExpire
 });
 
-app.use(express.json());
-
+/**
+ * Main function
+ */
 async function main(): Promise<void> {
     let jobsIds: number[] = [];
     let serversIds: number[] = [];
@@ -68,23 +79,9 @@ async function main(): Promise<void> {
     await updateJobsListInCache();
     jobsIds = cache.get("jobsIds") ?? [];
 
-    const corsOptions = {
-        // * WHITELIST - Not used because of browser connection
-        origin: "*",
-        methods: ['GET', 'POST'],
-        optionsSuccessStatus: 200,
-        credentials: true
-    }
-
-    const server = http.createServer(app);
-    const io = new Server(server, {
-        cors: corsOptions,
-        allowEIO3: true, // false by default
-    });
-
     const nodeServersMainSockets: Map<string, string> = new Map();
     const serverConnectionsInfo: Map<string, number[]> = new Map();
-    const socketListenersMap: Map<Socket, (data: any) => void> = new Map();
+    const socketListenersMap: Map<Socket, (data: any, socket: Socket) => void> = new Map();
 
     // SERVERS
     jobsIds = cache.get("jobsIds") ?? [];
@@ -110,27 +107,8 @@ async function main(): Promise<void> {
     let nmbOfConnections: number = 0;
 
     io.on('connection', (socket: Socket): void => {
-        console.log(nodeServersMainSockets);
-        console.log(socketListenersMap.size);
         nmbOfConnections++;
         console.log("\n\nNumber of connections: " + nmbOfConnections);
-
-
-
-        const serverConnectionListener = (message: any) => {
-            socket.to("main").emit("room_broadcast", message);
-        }
-        socketListenersMap.set(socket, serverConnectionListener);
-
-        const serviceDataValueListener = (message: any) => {
-            socket.to("main").emit("room_broadcast", message);
-        }
-        socketListenersMap.set(socket, serviceDataValueListener);
-
-        const pfSenseServiceListener = (message: any) => {
-            socket.to("main").emit("room_broadcast", message);
-        }
-        socketListenersMap.set(socket, pfSenseServiceListener);
 
         const connectedServerIp: string = socket.handshake.address.substring(7);
         serverConnectionsInfo.set(connectedServerIp, [((Array.from(serverConnectionsInfo.get(connectedServerIp)?.values() ?? [0])[0]) ?? 0) + 1, Date.now()]);
@@ -165,10 +143,8 @@ async function main(): Promise<void> {
             }
             else console.log(theme.warning("Client " + socket.id + " disconnected"));
 
-            eventEmitter.off("server_connection_state", socketListenersMap.get(socket));
-            eventEmitter.off("service_data_state_broadcast", socketListenersMap.get(socket));
-            eventEmitter.off("pfsense_service_state_broadcast", socketListenersMap.get(socket));
             socketListenersMap.delete(socket);
+            nmbOfConnections--;
         });
 
         socket.on("main_connection",(ip: string): void => {
@@ -188,10 +164,6 @@ async function main(): Promise<void> {
             socket.emit("test_connection_ack", "OK");
             console.log(theme.debug("Test connection from " + connectedServerIp + " : " + message));
         });
-
-        eventEmitter.on("server_connection_state", serverConnectionListener);
-        eventEmitter.on("pfsense_service_state_broadcast", pfSenseServiceListener);
-        eventEmitter.on("service_data_state_broadcast", serviceDataValueListener);
     });
 
     server.listen(config.mainServer.port, (): void => {
@@ -234,19 +206,6 @@ async function main(): Promise<void> {
                 break;
         }
         if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
-    });
-
-    // eventEmitter.on("server_connection_state", async (message: any): Promise<void> => {
-    //     const refactoredObjectMessage: PingTemplate = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
-    //     await messageHandler(refactoredObjectMessage);
-    // });
-    eventEmitter.on("service_data_state_broadcast", async (message: any): Promise<void> => {
-        const refactoredObjectMessage: ServiceDataTemplate = new ServiceDataTemplate(message.service.id, message.service.name, message.serviceData.id, message.serviceData.name, message.value, message.status);
-        await messageHandler(refactoredObjectMessage);
-    });
-    eventEmitter.on("pfsense_service_state_broadcast", async (message: any): Promise<void> => {
-        const refactoredObjectMessage: PfSenseServiceTemplate = new PfSenseServiceTemplate(message.pfSense.id, message.pfSense.ip, message.pfSenseService.id, message.pfSenseService.name, message.pfSenseService.pfSendeRequestId, message.status);
-        await messageHandler(refactoredObjectMessage);
     });
 }
 
