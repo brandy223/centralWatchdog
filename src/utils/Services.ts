@@ -30,9 +30,22 @@ import {messageHandler} from "../handlers/MessageHandler";
  * @returns {PingTemplate} The JSON object
  * @throws {Error} If the pingInfo is empty
  */
-export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[], serverType: number | null): PingTemplate {
+export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[], serverType: null): PingTemplate {
     if (pingInfo.length === 0) throw new Error("Ping info is empty");
     return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo, serverType);
+}
+
+/**
+ * Make a JSON object that contains the information of the pfSense server
+ * @param {PfSenses} pfSense The pfSense server object
+ * @param {string} status The status of the server
+ * @param {string[]} pingInfo Information about the ping
+ * @returns {PingTemplate} The JSON object
+ * @throws {Error} If the pingInfo is empty
+ */
+export function makePfSensePingJSON (pfSense: PfSenses, status: string, pingInfo: string[]): PingTemplate {
+    if (pingInfo.length === 0) throw new Error("Ping info is empty");
+    return new Template.PingTemplate(pfSense.id, pfSense.ip, status, pingInfo, 1);
 }
 
 /**
@@ -93,7 +106,7 @@ export function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, num
                     isUp.push("Problem with NodeJS App probably");
                     console.log(theme.warning("Server " + serverIP + " is up! But not sending any data..."));
                 } else {
-                    console.log(theme.warning("Server " + serverIP + " is up! No problem detected..."));
+                    console.log(theme.warning("Server " + serverIP + " is up! No problem detected"));
                 }
             }
             const server: Servers = await s.getServerByIP(serverIP);
@@ -130,13 +143,18 @@ export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
         const pfSenses: PfSenses[] = await pfs.getPfSensesByIds(pfSenseIds);
         for (const pfSense of pfSenses) {
 
-            //* PING of pfSense
-
+                //* PING of pfSense
             const isUp: string[] = await Network.ping(pfSense.ip);
-            const status: string = isUp[0] ? "OK" : "KO";
+            const status: string = isUp[0].includes("true") ? "OK" : "KO";
 
+                //* BROADCAST of pfSense ping state
+            const messageToSend: PingTemplate = await makePfSensePingJSON(pfSense, status, isUp)
+            console.log(theme.bgDebug("Broadcasting message: "));
+            console.log(messageToSend);
+            io.to("main").emit("room_broadcast", messageToSend);
+            await messageHandler(messageToSend);
 
-            //*
+            if (status === "KO") continue;
 
             const pfSenseData: any = await ServicesUtils.getPfSenseData(pfSense.ip);
             // if (pfSenseData === {}) continue;
@@ -176,7 +194,7 @@ export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
  * @returns {Promise<any[]>} The list of functions to execute
  */
 export async function getServiceDataValueFromServiceFunctionsInArray(services: Services[]): Promise<any[]> {
-    if (services === undefined || services.length === 0) {
+    if (services === null || services.length === 0) {
         console.log(theme.warning("No services found"));
         return [-1];
     }

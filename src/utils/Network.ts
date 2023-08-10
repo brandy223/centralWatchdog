@@ -36,6 +36,7 @@ export async function ping (ip: string) : Promise<string[]> {
  */
 export function extractPingInfo (pingOutput: string) : string[] {
     const temp: string[] = pingOutput.trim().split("\n");
+    if (temp[0].includes("unknown host")) return ["unknown host"];
     return temp[temp.length - 2].split(",").map((part: string) => part.trim());
 }
 
