@@ -30,12 +30,14 @@ interface PfSenseService {
 
 export class PingTemplate {
     messageType: number;
+    serverType: number;
     server: Server;
     status: string;
     pingInfo: string[];
 
-    constructor(serverId: number, ip: string, status: string, pingInfo: string[]) {
+    constructor(serverId: number, ip: string, status: string, pingInfo: string[], serverType: number | null) {
         this.messageType = 1;
+        this.serverType = serverType ?? 0;
         this.server = { id: serverId, ip };
         this.status = status;
         this.pingInfo = pingInfo;

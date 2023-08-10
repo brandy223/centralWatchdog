@@ -3,7 +3,7 @@
 import {PfSenseServiceTemplate, PingTemplate, ServiceDataTemplate} from "../templates/DataTemplates";
 import {AxiosResponse} from "axios";
 import {Servers, ServicesData, Services, PfSenses, PfSenseServices, PfSenseAndServices} from "@prisma/client";
-import {config} from "../index";
+import {config, io} from "../index";
 
 const axios = require('axios');
 const request = require('request');
@@ -19,7 +19,6 @@ const theme = require("./ColorScheme").theme;
 
 const Template = require("../templates/DataTemplates");
 
-import { io } from "../index";
 import {messageHandler} from "../handlers/MessageHandler";
 
 /**
@@ -27,12 +26,13 @@ import {messageHandler} from "../handlers/MessageHandler";
  * @param {Servers} server The server object
  * @param {string} status The status of the server
  * @param {string[]} pingInfo Information about the ping
+ * @param {number | null} serverType The type of the server (0 if null => default type for classic server, decided in PingTemplate Class)
  * @returns {PingTemplate} The JSON object
  * @throws {Error} If the pingInfo is empty
  */
-export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[]): PingTemplate {
+export function makeServerPingJSON (server: Servers, status: string, pingInfo: string[], serverType: number | null): PingTemplate {
     if (pingInfo.length === 0) throw new Error("Ping info is empty");
-    return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo);
+    return new Template.PingTemplate(server.id, server.ipAddr, status, pingInfo, serverType);
 }
 
 /**
@@ -66,7 +66,7 @@ export function makePfSenseServiceJSON (pfSense: PfSenses, pfSenseService: PfSen
  * Watch for server connections and ping them if they have not tried to connect for a while
  * @param {Map<string, number[]>} serverConnectionsInfo The map that contains the number of connections for each server
  * @param {string[]} serversIpAddr The list of servers IP addresses to watch
- * @returns {NodeJS.Timeout} The interval
+ * @returns {NodeJS.Timer} The interval
  */
 export function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, number[]>, serversIpAddr: string[]): NodeJS.Timer {
     return setInterval(async (): Promise<void> => {
@@ -105,7 +105,7 @@ export function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, num
                     "type": server.type,
                     "port": server.port,
                     "priority": server.priority
-                }, status, isUp
+                }, status, isUp, null
             )
             console.log(theme.bgDebug("Broadcasting message: "));
             console.log(messageToSend);
@@ -118,7 +118,7 @@ export function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, num
 /**
  * Watch for pfsense services and send their data
  * @param {number[]} pfSenseIds The list of pfSense ids to watch
- * @returns {NodeJS.Timeout} The interval
+ * @returns {NodeJS.Timer} The interval
  */
 export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
     return setInterval(async (): Promise<void> => {
@@ -128,7 +128,16 @@ export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
         }
         const assignedPfSenseServices: PfSenseAndServices[] = await pfsv.getAllPfSenseServicesAssignedToAPfSense();
         const pfSenses: PfSenses[] = await pfs.getPfSensesByIds(pfSenseIds);
-        for (let pfSense of pfSenses) {
+        for (const pfSense of pfSenses) {
+
+            //* PING of pfSense
+
+            const isUp: string[] = await Network.ping(pfSense.ip);
+            const status: string = isUp[0] ? "OK" : "KO";
+
+
+            //*
+
             const pfSenseData: any = await ServicesUtils.getPfSenseData(pfSense.ip);
             // if (pfSenseData === {}) continue;
             // TODO: change this

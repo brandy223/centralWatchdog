@@ -69,19 +69,17 @@ async function main(): Promise<void> {
     let jobsIds: number[] = [];
     let serversIds: number[] = [];
     let serversIpAddr: string[] = [];
-
     let pfSensesIds: number[] = [];
     let dataServicesIds: number[] = [];
     let servicesDataWrapper: any[] = [];
     let servicesDataTasks: any[] = [];
 
+    const nodeServersMainSockets: Map<string, string> = new Map();
+    const serverConnectionsInfo: Map<string, number[]> = new Map();
+
     await misc.centralServerDatabaseInit();
     await updateJobsListInCache();
     jobsIds = cache.get("jobsIds") ?? [];
-
-    const nodeServersMainSockets: Map<string, string> = new Map();
-    const serverConnectionsInfo: Map<string, number[]> = new Map();
-    const socketListenersMap: Map<Socket, (data: any, socket: Socket) => void> = new Map();
 
     // SERVERS
     jobsIds = cache.get("jobsIds") ?? [];
@@ -93,6 +91,7 @@ async function main(): Promise<void> {
     await updatePfSensesListInCache();
     pfSensesIds = cache.get("pfSensesIds") ?? [];
     let checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(pfSensesIds);
+    // TODO: Need to ping pfSense first
 
     // SERVICES DATA
     await updateDataServicesInCache();
@@ -123,7 +122,7 @@ async function main(): Promise<void> {
             let refactoredMessage: PingTemplate | ServiceTestTemplate;
             switch (message.messageType) {
                 case 1:
-                    refactoredMessage = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo);
+                    refactoredMessage = new PingTemplate(message.server.id, message.server.ip, message.status, message.pingInfo, null);
                     await messageHandler(refactoredMessage);
                     break;
                 case 2:
@@ -143,7 +142,6 @@ async function main(): Promise<void> {
             }
             else console.log(theme.warning("Client " + socket.id + " disconnected"));
 
-            socketListenersMap.delete(socket);
             nmbOfConnections--;
         });
 

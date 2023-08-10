@@ -4,11 +4,11 @@
  * @param {any[]} functions
  * @param {number[]} intervals
  * @return {Promise<any[]>} Array of setIntervals variables
- * @throws {Error} If the number of functions, intervals and timeouts is not the same
+ * @throws {Error} If the number of functions and intervals is not the same
  */
 export async function executeTimedTask(functions: (() => void)[], intervals: number[]): Promise<any[]> {
     if (functions.length !== intervals.length)
-        throw new Error("The number of functions, intervals and timeouts must be the same");
+        throw new Error("The number of functions and intervals must be the same");
 
     const intervalsTabs: any[] = [];
 
