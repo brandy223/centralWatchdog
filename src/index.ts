@@ -66,11 +66,8 @@ export const cache = new NodeCache({
  * Main function
  */
 async function main(): Promise<void> {
-    let jobsIds: number[] = [];
     let serversIds: number[] = [];
     let serversIpAddr: string[] = [];
-    let pfSensesIds: number[] = [];
-    let dataServicesIds: number[] = [];
     let servicesDataWrapper: any[] = [];
     let servicesDataTasks: any[] = [];
 
@@ -79,24 +76,21 @@ async function main(): Promise<void> {
 
     await misc.centralServerDatabaseInit();
     await updateJobsListInCache();
-    jobsIds = cache.get("jobsIds") ?? [];
 
     // SERVERS
-    jobsIds = cache.get("jobsIds") ?? [];
-    serversIds = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
+    serversIds = (await s.getServersIdsOfJobs(cache.get("jobsIds") ?? [])).map((server: ServersOfJobs) => server.serverId);
+    console.log(serversIds);
     serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
+    console.log(serversIpAddr);
     let checkOnServers = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
 
     // PF SENSES
     await updatePfSensesListInCache();
-    pfSensesIds = cache.get("pfSensesIds") ?? [];
-    let checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(pfSensesIds);
-    // TODO: Need to ping pfSense first
+    let checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(cache.get("pfSensesIds") ?? []);
 
     // SERVICES DATA
     await updateDataServicesInCache();
-    dataServicesIds = cache.get("dataServicesIds") ?? [];
-    servicesDataWrapper = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(await se.getServicesByIds(dataServicesIds));
+    servicesDataWrapper = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(await se.getServicesByIds(cache.get("dataServicesIds") ?? []));
     if (servicesDataWrapper[0] !== -1) servicesDataTasks = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
 
     io.on("error", () => {
@@ -168,39 +162,25 @@ async function main(): Promise<void> {
         console.log(`Server listening on port ${config.mainServer.port}`);
     });
 
-    cache.on("set", async (key: string, value: (number | string)[]): Promise<void> => {
-       switch(key) {
-           case "jobsIds":
-               clearInterval(checkOnServers);
-               jobsIds = value as number[];
-               serversIds = (await s.getServersIdsOfJobs(jobsIds)).map((server: ServersOfJobs) => server.serverId);
-               serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
-               checkOnServers = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
-               break;
-           case "pfSensesIds":
-               clearInterval(checkOnPfSenses);
-               pfSensesIds = value as number[];
-               checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(pfSensesIds);
-               break;
-           case "dataServicesIds":
-               await Timer.clearAllIntervals(servicesDataTasks);
-               dataServicesIds = value as number[];
-               servicesDataWrapper = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(await svd.getServicesDataByIds(dataServicesIds));
-               if (servicesDataWrapper[0] !== -1) servicesDataTasks = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
-               break;
-       }
-    });
-
     cache.on("del", async (key: string, value: (number | string)[]): Promise<void> => {
         switch (key) {
             case "jobsIds":
+                clearInterval(checkOnServers);
                 await updateJobsListInCache();
+                serversIds = (await s.getServersIdsOfJobs(cache.get("jobsIds") ?? [])).map((server: ServersOfJobs) => server.serverId);
+                serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
+                checkOnServers = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
                 break;
             case "pfSensesIds":
+                clearInterval(checkOnPfSenses);
                 await updatePfSensesListInCache();
+                checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(cache.get("pfSensesIds") ?? []);
                 break;
             case "dataServicesIds":
+                await Timer.clearAllIntervals(servicesDataTasks);
                 await updateDataServicesInCache();
+                servicesDataWrapper = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(await se.getServicesByIds(cache.get("dataServicesIds") ?? []));
+                if (servicesDataWrapper[0] !== -1) servicesDataTasks = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
                 break;
         }
         if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);

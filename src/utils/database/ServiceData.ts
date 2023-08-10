@@ -21,6 +21,10 @@ export async function getAllServicesData () : Promise<ServicesData[]> {
  * @returns {Promise<ServicesData[]>} The services data
  */
 export async function getServicesDataByIds (ids: number[]) : Promise<ServicesData[]> {
+    if (ids.length === 0) {
+        console.log("No ids provided");
+        return [];
+    }
     return prisma.servicesData.findMany({where: {id: {in: ids}}});
 }
 

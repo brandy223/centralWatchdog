@@ -82,10 +82,12 @@ export async function getServerByType (type: string) : Promise<Servers[]> {
  * Get servers by ids
  * @param {number[]} ids The ids of the servers
  * @returns {Promise<Servers[]>} Array of servers
- * @throws {Error} If ids is empty
  */
 export async function getServersByIds (ids: number[]) : Promise<Servers[]> {
-    if (ids.length === 0) throw new Error("Ids is empty");
+    if (ids.length === 0) {
+        console.log("No ids provided");
+        return [];
+    }
     return prisma.servers.findMany({where: {id: {in: ids}}});
 }
 
@@ -136,10 +138,12 @@ export async function updateServer (ip: string, type: string, port: number, prio
  * Get servers ids of jobs
  * @param {number[]} ids The ids of the jobs
  * @returns {Promise<ServersOfJobs[]>} Array of servers ids
- * @throws {Error} If ids is empty
  */
 export async function getServersIdsOfJobs (ids: number[]) : Promise<ServersOfJobs[]> {
-    if (ids.length === 0) throw new Error("Ids is empty");
+    if (ids.length === 0) {
+        console.log("No ids provided");
+        return [];
+    }
     return prisma.serversOfJobs.findMany({
         where: {
             jobId: {
