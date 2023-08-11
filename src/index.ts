@@ -6,11 +6,9 @@ export const config = require("../config.json").config;
 // DATABASE
 const s = require('./utils/database/Servers');
 const se = require('./utils/database/Services');
-const sd = require('./utils/database/ServiceData');
 const j = require('./utils/database/Jobs');
 const pfs = require('./utils/database/PfSenses');
 const pfsv = require('./utils/database/PfSenseServices');
-const svd = require('./utils/database/ServiceData');
 const misc = require('./utils/database/Misc');
 
 // UTILS
@@ -21,6 +19,15 @@ const theme = require('./utils/ColorScheme').theme;
 const removeApiCashMessage = require('./actions/SendGlobalMessage').deleteMessage;
 const { messageHandler } = require('./handlers/MessageHandler');
 
+import {Socket} from "socket.io";
+import {
+    PingTemplate,
+    ServiceTestTemplate
+} from "./templates/DataTemplates";
+import {testConnectionToSocket} from "./utils/Network";
+import {clearInterval} from "timers";
+import {mainServerWatchdog} from "./utils/Services";
+
 // TYPES
 import {
     Jobs,
@@ -29,11 +36,6 @@ import {
     ServersOfJobs,
     Services,
 } from "@prisma/client";
-import {Socket} from "socket.io";
-import {
-    PingTemplate,
-    ServiceTestTemplate
-} from "./templates/DataTemplates";
 
     //* Express Server
 const express = require('express');
@@ -62,19 +64,59 @@ export const cache = new NodeCache({
     deleteOnExpire: config.cache.deleteOnExpire
 });
 
+let thisServer: Servers;
+let serversIds: number[] = [];
+let serversIpAddr: string[] = [];
+let servicesDataWrapper: any[] = [];
+let servicesDataTasks: any[] = [];
+
+let isCentralServerDown: boolean = false;
+
+const nodeServersMainSockets: Map<string, string> = new Map();
+const serverConnectionsInfo: Map<string, number[]> = new Map();
+
 /**
  * Main function
  */
 async function main(): Promise<void> {
-    let serversIds: number[] = [];
-    let serversIpAddr: string[] = [];
-    let servicesDataWrapper: any[] = [];
-    let servicesDataTasks: any[] = [];
+    thisServer = await misc.centralServerDatabaseInit();
+    let otherServerWatchdog: any;
 
-    const nodeServersMainSockets: Map<string, string> = new Map();
-    const serverConnectionsInfo: Map<string, number[]> = new Map();
+    if ((thisServer.priority ?? 2) === 2) {
+        otherServerWatchdog = setInterval(async (): Promise<void> => {
+            if (isCentralServerDown) return;
+            console.log(theme.info("Checking if other central server is down..."));
+            const otherCentralServer = await s.getCurrentCentralServer();
+            if (otherCentralServer !== undefined &&
+                (!await testConnectionToSocket(otherCentralServer.ipAddr, otherCentralServer.port?.toString()
+                    ?? config.mainServer.port.toString()))) {
+                isCentralServerDown = true;
+                clearInterval(otherServerWatchdog);
+            }
+            const state: string = isCentralServerDown ? "DOWN" : "UP";
+            console.log("State : " + state);
+            if (isCentralServerDown) {
+                await runServer();
+                await mainServerWatchdog(thisServer, otherCentralServer);
+            }
+        }, config.mainServer.check_period);
+    }
+    else await runServer();
+}
 
-    await misc.centralServerDatabaseInit();
+main().then(() => {
+    const bonusContent: string = thisServer.priority === 2 ? " backup" : ""
+    console.log(theme.info("Main" + bonusContent + " server started"));
+});
+
+/**
+ * Start main algo of server
+ */
+async function runServer(): Promise<void> {
+    const bonusContent: string = thisServer.priority === 2 ? " backup" : ""
+    console.log(theme.info("Starting" + bonusContent + " server tasks..."));
+
+        //* JOBS
     await updateJobsListInCache();
 
         //* SERVERS
@@ -139,11 +181,11 @@ async function main(): Promise<void> {
         });
 
         socket.on("main_connection",(ip: string): void => {
-           console.log(theme.warningBright("New Main Connection from " + ip));
-           socket.emit("main_connection_ack", "OK");
-           socket.join("main");
-           socket.to("main").emit("room_broadcast", "New server connected: " + ip);
-           nodeServersMainSockets.set(socket.id, ip);
+            console.log(theme.warningBright("New Main Connection from " + ip));
+            socket.emit("main_connection_ack", "OK");
+            socket.join("main");
+            socket.to("main").emit("room_broadcast", "New server connected: " + ip);
+            nodeServersMainSockets.set(socket.id, ip);
         });
 
         socket.on("browser_connection",(): void => {
@@ -185,10 +227,6 @@ async function main(): Promise<void> {
         if (key.includes("apiCash_message")) await removeApiCashMessage(value[0] as number);
     });
 }
-
-main().then(() => {
-    console.log(theme.info("Main server started"));
-});
 
 /**
  * Update the jobs list in cache
