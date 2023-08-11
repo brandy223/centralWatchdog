@@ -29,17 +29,18 @@ export async function isServerCentral (ip: string) : Promise<boolean> {
 /**
  * Check is there is another central server in the database
  * @param {string} ip The ip of the current server
- * @returns {Promise<boolean>} True if there is another central server in the database, false otherwise
+ * @returns {Promise<[boolean, Servers]>} True if there is another central server in the database and the server, false otherwise
  */
-export async function isThereAnotherCentralServer (ip: string) : Promise<boolean> {
-    return (await prisma.servers.findMany({
+export async function isThereAnotherCentralServer (ip: string) : Promise<[boolean, Servers]> {
+    const server: Servers[] = await prisma.servers.findMany({
         where: {
             type: "Central",
             ipAddr: {
                 not: ip
             }
         }
-    })).length > 0;
+    })
+    return [server.length !== 0, server[0]];
 }
 
 /**

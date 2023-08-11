@@ -16,7 +16,8 @@ export async function centralServerDatabaseInit(): Promise<Servers | undefined> 
     console.log(`Local IP: ${ip}`);
 
     // VERIFY IF ANOTHER CENTRAL SERVER EXISTS IN DATABASE
-    if (await s.isThereAnotherCentralServer(ip)) {
+    const anotherServerCheck: [boolean, Servers] = await s.isThereAnotherCentralServer(ip);
+    if (anotherServerCheck[0] && anotherServerCheck[1] !== null && anotherServerCheck[1].priority === 1) {
         serverPriority = 2;
     }
 
