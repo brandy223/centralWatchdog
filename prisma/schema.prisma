@@ -119,11 +119,13 @@ model StateValues {
   scenarioId       Int
   dataId           Int?
   pfSenseServiceId Int?
+  pfSenseId        Int?
   job              Jobs?            @relation(fields: [jobId], references: [id])
   server           Servers?         @relation(fields: [serverId], references: [id])
   scenario         Scenarios        @relation(fields: [scenarioId], references: [id])
   data             ServicesData?    @relation(fields: [dataId], references: [id])
   pfSenseService   PfSenseServices? @relation(fields: [pfSenseServiceId], references: [id])
+  pfSense          PfSenses?        @relation(fields: [pfSenseId], references: [id])
 }
 
 model Scenarios {
@@ -205,6 +207,7 @@ model PfSenses {
   name            String?              @db.VarChar(255)
   grabAllValues   Boolean              @default(true)
   pfSenseServices PfSenseAndServices[]
+  stateValues     StateValues[]
 }
 
 model PfSenseServices {

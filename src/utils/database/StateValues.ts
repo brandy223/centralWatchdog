@@ -55,6 +55,17 @@ export async function getPfSenseServiceStateValues(id: number): Promise<StateVal
 }
 
 /**
+ * Get all the state values of a pfSense server
+ * @param {number} id the id of the pfSense server
+ * @returns {Promise<StateValues[]>} The state values of the pfSense server
+ * @throws {Error} If the pfSense server is not in the database
+ */
+export async function getPfSenseStateValues(id: number): Promise<StateValues[]> {
+    if ((await pfsv.getPfSenseServicesByIds([id])) === null) throw new Error("PfSense Service is not in database");
+    return prisma.stateValues.findMany({where: {pfSenseId: id}});
+}
+
+/**
  * Get all the state values of an object
  * @param {number} id The id of the object
  * @returns {Promise<StateValues[]>} The state values of the object

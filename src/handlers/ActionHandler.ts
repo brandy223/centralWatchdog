@@ -34,8 +34,10 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
 
     switch(message.messageType) {
         case 1:
-            if (message instanceof PingTemplate)
+            if (message instanceof PingTemplate && message.serverType === 0)
                 stateValues = await sv.getServerStateValues(message.server.id);
+            else if (message instanceof PingTemplate && message.serverType === 1)
+                stateValues = await sv.getPfSenseStateValues(message.server.id);
             break;
         case 2:
             if (message instanceof ServiceTestTemplate)
