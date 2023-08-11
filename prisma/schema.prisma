@@ -29,14 +29,16 @@ enum ServerStatus {
 }
 
 model Servers {
-  id          Int                 @id @default(autoincrement())
-  ipAddr      String              @unique @db.VarChar(64)
-  type        ServerStatus        @default(Normal)
-  port        Int?                @db.MediumInt
-  priority    Int?                @db.TinyInt
-  services    ServicesOfServers[]
-  jobs        ServersOfJobs[]
-  stateValues StateValues[]
+  id               Int                 @id @default(autoincrement())
+  ipAddr           String              @unique @db.VarChar(64)
+  type             ServerStatus        @default(Normal)
+  port             Int?                @db.MediumInt
+  priority         Int?                @db.TinyInt
+  sshUser          String?             @db.VarChar(255)
+  serviceStatusCmd String?             @db.VarChar(255)
+  services         ServicesOfServers[]
+  jobs             ServersOfJobs[]
+  stateValues      StateValues[]
 }
 
 model ServicesOfServers {
@@ -201,6 +203,7 @@ model PfSenses {
   id              Int                  @id @default(autoincrement())
   ip              String               @unique @db.VarChar(64)
   name            String?              @db.VarChar(255)
+  grabAllValues   Boolean              @default(true)
   pfSenseServices PfSenseAndServices[]
 }
 
