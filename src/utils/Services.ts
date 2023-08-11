@@ -20,6 +20,7 @@ const theme = require("./ColorScheme").theme;
 const Template = require("../templates/DataTemplates");
 
 import {messageHandler} from "../handlers/MessageHandler";
+import {ping, testConnectionToSocket} from "./Network";
 
 /**
  * Make a JSON object that contains the id of the server, its IP address and its status
@@ -294,4 +295,34 @@ export async function getPfSenseAuth(ip: string, auth: string): Promise<string> 
             resolve((JSON.parse(body)).data.token);
         });
     });
+}
+
+/**
+ * Watch for the main server state (which has a priority of 1) in case of state change (Down)
+ * @param {Servers} thisServer The server to watch
+ * @param {Servers} otherCentralServer The other central server
+ * @returns {Promise<NodeJS.Timer>} The timer
+ */
+export async function mainServerWatchdog(thisServer: Servers, otherCentralServer: Servers): Promise<NodeJS.Timer> {
+    return setInterval(async (): Promise<void> => {
+        const mainServerPingInfo: string[] = await ping(thisServer.ipAddr);
+        const mainServerSocketState: boolean = await testConnectionToSocket(otherCentralServer.ipAddr, otherCentralServer.port?.toString()
+            ?? config.mainServer.port.toString())
+        const mainServerState: string[] = mainServerPingInfo.concat(mainServerSocketState.toString());
+        const messageToSend: PingTemplate = await makeServerPingJSON(
+            {
+                "id": otherCentralServer.id,
+                "ipAddr": otherCentralServer.ipAddr,
+                "type": otherCentralServer.type,
+                "port": otherCentralServer.port,
+                "priority": otherCentralServer.priority,
+                "sshUser": otherCentralServer.sshUser,
+                "serviceStatusCmd": otherCentralServer.serviceStatusCmd,
+            }, mainServerPingInfo[0], mainServerState, null
+        );
+        console.log(theme.bgDebug("Broadcasting message: "));
+        console.log(messageToSend);
+        io.to("main").emit("room_broadcast", messageToSend);
+        await messageHandler(messageToSend);
+    }, config.mainServer.check_period);
 }
