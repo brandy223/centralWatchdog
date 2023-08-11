@@ -54,3 +54,40 @@ export async function pingServers (ipList: string[]) : Promise<string[]> {
     }
     return reachableIPList;
 }
+
+/**
+ * Test connection with server socket
+ * @param {string} ip
+ * @param {number} port
+ * @returns {Promise<boolean>} True if the connection is established, false otherwise
+ */
+export function testConnectionToSocket (ip: string, port: string) : Promise<boolean> {
+    return new Promise((resolve, reject): void => {
+        const socket = require('socket.io-client')(`http://${ip}:${port}`,
+            {
+                reconnection: false,
+                transports: ["polling"],
+                allowEIO3: true, // false by default
+            });
+        socket.on('connect', (): void => {
+            socket.emit("test_connection", "OK");
+        });
+        socket.on("test_connection_ack", async (message: string): Promise<void> => {
+            console.log("Test connection ack: " + message);
+            socket.disconnect();
+            socket.close();
+            resolve(true);
+        });
+        socket.on("error", (error: any): void => {
+            console.log("Error: " + error);
+            resolve(false);
+            socket.disconnect();
+            socket.close();
+        });
+        socket.on('connect_error', (): void => {
+            resolve(false);
+            socket.disconnect();
+            socket.close()
+        });
+    });
+}
