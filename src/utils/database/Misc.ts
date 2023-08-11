@@ -8,7 +8,7 @@ const Network = require('../Network');
 /**
  * Initialize the central server in database
  */
-export async function centralServerDatabaseInit(): Promise<void> {
+export async function centralServerDatabaseInit(): Promise<Servers | undefined> {
     let serverPriority: number = 1;
 
     // GET LOCAL IP
@@ -48,4 +48,6 @@ export async function centralServerDatabaseInit(): Promise<void> {
             console.log(`Updated server priority to ${serverPriority}`);
         }
     }
+
+    return s.getServerByIP(ip);
 }
