@@ -35,7 +35,7 @@ import {
     ServiceTestTemplate
 } from "./templates/DataTemplates";
 
-    //* SERVER
+    //* Express Server
 const express = require('express');
 const app = express();
 const http = require('http');
@@ -77,18 +77,17 @@ async function main(): Promise<void> {
     await misc.centralServerDatabaseInit();
     await updateJobsListInCache();
 
-    // SERVERS
+        //* SERVERS
     serversIds = (await s.getServersIdsOfJobs(cache.get("jobsIds") ?? [])).map((server: ServersOfJobs) => server.serverId);
-    console.log(serversIds);
     serversIpAddr = (await s.getServersByIds(serversIds)).map((server: Servers) => server.ipAddr);
-    console.log(serversIpAddr);
     let checkOnServers = ServicesUtils.serverConnectionsWatchdog(serverConnectionsInfo, serversIpAddr);
 
-    // PF SENSES
+        //* PF SENSES
+    await pfs.pfSenseDatabaseInit();
     await updatePfSensesListInCache();
     let checkOnPfSenses = ServicesUtils.pfSenseServicesWatchdog(cache.get("pfSensesIds") ?? []);
 
-    // SERVICES DATA
+        //* SERVICES DATA
     await updateDataServicesInCache();
     servicesDataWrapper = await ServicesUtils.getServiceDataValueFromServiceFunctionsInArray(await se.getServicesByIds(cache.get("dataServicesIds") ?? []));
     if (servicesDataWrapper[0] !== -1) servicesDataTasks = await Timer.executeTimedTask(servicesDataWrapper, [config.servicesData.check_period]);
