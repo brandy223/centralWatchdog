@@ -117,7 +117,9 @@ export function serverConnectionsWatchdog(serverConnectionsInfo: Map<string, num
                     "ipAddr": server.ipAddr,
                     "type": server.type,
                     "port": server.port,
-                    "priority": server.priority
+                    "priority": server.priority,
+                    "sshUser": server.sshUser,
+                    "serviceStatusCmd": server.serviceStatusCmd
                 }, status, isUp, null
             )
             console.log(theme.bgDebug("Broadcasting message: "));
@@ -158,7 +160,8 @@ export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
 
             const pfSenseData: any = await ServicesUtils.getPfSenseData(pfSense.ip);
             // if (pfSenseData === {}) continue;
-            // TODO: change this
+            // TODO: change this to the return value when there is "nothing returned"
+
             const pfSenseServices: PfSenseServices[] = await pfsv.getPfSenseServicesByIds(assignedPfSenseServices.filter((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId === pfSense.id).map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseServiceId));
             for (let pfSenseService of pfSenseServices) {
                 let hitData: number[] = [];
