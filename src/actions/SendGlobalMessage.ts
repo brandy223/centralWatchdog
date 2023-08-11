@@ -91,9 +91,10 @@ export async function main (inCacheName: string, messageContent: string, scenari
  * Create the inCache name for the message and its content
  * @param { PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate } message the message that contains the information
  * @param { number } scenarioPriority the priority of the scenario
+ * @param { string | null } stateValueDescription the description of the state value
  * @returns { string[] } the inCache name and message content
  */
-export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate), scenarioPriority: number) : Promise<string[]> {
+export async function createInCacheNameAndMessageContent (message: (PingTemplate | ServiceTestTemplate | PfSenseServiceTemplate | ServiceDataTemplate), scenarioPriority: number, stateValueDescription: string | null) : Promise<string[]> {
     let inCacheName: string = "";
     let messageContent: string = "";
 
@@ -125,9 +126,7 @@ export async function createInCacheNameAndMessageContent (message: (PingTemplate
         case 4:
             if (message instanceof ServiceDataTemplate) {
                 inCacheName = `${message.serviceData.name}_apiCash_message_${scenarioPriority}`;
-                messageContent = `UNDEFINED`;
-                // TODO: Define message content HERE
-                // ? Description of state value ??
+                messageContent = stateValueDescription ?? "";
             }
             break;
         default:
