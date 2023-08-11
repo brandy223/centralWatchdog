@@ -105,7 +105,7 @@ async function main(): Promise<void> {
 }
 
 main().then(() => {
-    const bonusContent: string = thisServer.priority === 2 ? " backup" : ""
+    const bonusContent: string = thisServer.priority === 2 ? " backup" : "";
     console.log(theme.info("Main" + bonusContent + " server started"));
 });
 

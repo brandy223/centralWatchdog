@@ -84,11 +84,8 @@ export async function actionHandler(message: (PingTemplate | ServiceTestTemplate
                 let serverIp: string = ""
                 if (message instanceof PingTemplate) serverIp = message.server.ip;
                 else if (message instanceof ServiceTestTemplate) serverIp = message.server.ip;
-                // TODO: for services, need to find corresponding server
                 else return;
-
-                // const server: Servers[] = await s.getServersByIds([message.server.id]);
-                // await reboot(serverIp, process.env.SSH_USER);
+                // TODO: implement reboot for services with systemctl
                 break;
             default:
                 console.log(theme.error("Unknown type of action"));
