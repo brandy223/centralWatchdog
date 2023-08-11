@@ -1,5 +1,6 @@
 
 import {Services, ServicesOfServers} from "@prisma/client";
+import {theme} from "../ColorScheme";
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient(
@@ -12,10 +13,12 @@ const prisma = new PrismaClient(
  * Get services by ids
  * @param {number[]} ids The ids of the services
  * @returns {Promise<Services[]>} The services
- * @throws {Error} If no ids are provided
  */
 export async function getServicesByIds (ids: number[]) : Promise<Services[]> {
-    if (ids.length === 0) throw new Error("No ids provided");
+    if (ids.length === 0) {
+        console.log(theme.warning("No ids provided"));
+        return [];
+    }
     return prisma.services.findMany({where: {id: {in: ids}}});
 }
 
