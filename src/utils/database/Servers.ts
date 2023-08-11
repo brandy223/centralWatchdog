@@ -152,3 +152,11 @@ export async function getServersIdsOfJobs (ids: number[]) : Promise<ServersOfJob
         }
     });
 }
+
+/**
+ * Get current central server (which has a priority of 1)
+ * @returns {Promise<Servers>} The central server
+ */
+export async function getCurrentCentralServer () : Promise<Servers> {
+    return (await prisma.servers.findMany({where: {priority: 1}}))[0];
+}
