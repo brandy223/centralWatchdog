@@ -66,6 +66,7 @@ when starting their program, and this applies to this server too).
 (If the PfSense server exists in database).
 
 <u>Here's an example of a pfSense server :</u>
+
 | id  | name | ip |
 | --- | --- | --- |
 | 1 | Site_Toulon | 192.168.187.125 |
@@ -91,6 +92,7 @@ connected to a server, 1 for a service that is a group of data.
 the program will use the link filled in the service to grab its value or information.
 
 <u>Example:</u>
+
 | id  | name | port | type | url |
 | --- | --- | --- | --- | --- |
 | 1 | Tickets | null | 1 | http://askformydata.com/api/1.0/data?id=1 |
@@ -106,6 +108,7 @@ the program will use the link filled in the service to grab its value or informa
 - **nameInResponse**: The name of the data object in the response *(Used to identify the data object in the response)*.
 
 <u>Example:</u>
+
 | id  | name | description | isUrlInService | url | nameInResponse |
 | --- | --- | --- | --- | --- | --- |
 | 1 | openTickets | Open tickets | true | null | openTickets |
@@ -117,6 +120,7 @@ the program will use the link filled in the service to grab its value or informa
 - **dataId**: The id of the data object.
 
 <u>Example:</u>
+
 | serviceId  | dataId |
 | --- | --- |
 | 1 | 1 |
@@ -135,6 +139,7 @@ Actors are the people that may be notified when there is a problem on a service.
 - **number**: The phone number of the actor (which can be null).
 
 <u>Example:</u>
+
 | id  | name | email | number |
 | --- | --- | --- | --- | 
 | 1 | John Doe | johndoe@gmail.com | 0123456789 |
@@ -149,6 +154,7 @@ Actors are the people that may be notified when there is a problem on a service.
 <br>Where you just need to fill the **name** field, which is the name of the list of actors.
 
 <u>Example:</u>
+
 | id  | name |
 | --- | --- |
 | 1 | Main List |
@@ -157,6 +163,7 @@ Actors are the people that may be notified when there is a problem on a service.
 <br><img src="img/actorsAndLists.png">
 
 <u>Example:</u>
+
 | actorId  | listId |
 | --- | --- |
 | 1 | 1 |
@@ -175,6 +182,7 @@ names in files, not case-sensitive)*.
 - **description**: The description of the action.
 
 <u>Example:</u>
+
 | id  | name | description |
 | --- | --- | --- |
 | 1 | sendEmail | Send an email to the actor. |
@@ -184,6 +192,7 @@ has a problem. To do that, you need to add an entry in the **Scenarios** table :
 <br><img src="img/scenarios.png">
 
 <u>Example:</u>
+
 | id  | name | description |
 | --- | --- | --- |
 | 1 | tooMuchData | Alert when data overload |
@@ -192,6 +201,7 @@ has a problem. To do that, you need to add an entry in the **Scenarios** table :
 <br><img src="img/actionsOfScenarios.png">
 
 <u>Example:</u>
+
 | scenarioId  | actionId |
 | --- | --- |
 | 1 | 1 |
@@ -202,6 +212,7 @@ has a problem. To do that, you need to add an entry in the **Scenarios** table :
 <img src="img/actorsListsForScenarios.png">
 
 <u>Example:</u>
+
 | scenarioId  | actorId | priority | actionId |
 | --- | --- | --- | --- |
 | 1 | 1 | 1 | 1 |
@@ -234,6 +245,7 @@ and 2 for an inferior number.
 - **pfSenseId**: The id of the pfSense which is related to this state value.
 
 <u>Example:</u>
+
 | id  | name | description | value | typeOfValue | priority | jobId | serverId | scenarioId | dataId | pfSenseServiceId | pfSenseId |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | tooMuchData | Alert when data overload | 100 | 1 | 1 | null | null | 1 | 1 | null | null |
