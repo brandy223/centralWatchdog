@@ -1,0 +1,67 @@
+{
+  "config": {
+    "mainServer": {
+      "port": 3005,
+      "check_period": 10000,
+      "max_failed_connections_attempts": 10
+    },
+    "nodeServers": {
+      "check_period": 10000,
+      "max_time_between_connections": 30000
+    },
+    "apiCash": {
+      "message_default_duration": 86400,
+      "cache_duration": 86400
+    },
+    "mail": {
+      "cooldown": 20000,
+      "host": "",
+      "port": 25,
+      "author": "",
+      "secure": false,
+      "ignoreTLS": true
+    },
+    "message":{
+      "cooldown": 30000
+    },
+    "jobs": {
+      "check_period": 60000,
+      "cache_duration": 60
+    },
+    "servers": {
+      "check_period": 60000,
+      "cache_duration": 60
+    },
+    "services": {
+      "check_period": 60000,
+      "cache_duration": 60
+    },
+    "servicesData": {
+      "check_period": 20000,
+      "cache_duration": 60
+    },
+    "pfSense": {
+      "check_period": 20000,
+      "cache_duration": 60
+    },
+    "ping": {
+      "timeout": 10,
+      "extra": ["-i", "0.5", "-c", "1"]
+    },
+    "apis": {
+      "holidays_url": "",
+      "sms_url": "",
+      "pfsense_url": ""
+    },
+    "cache": {
+      "default_ttl": 3600,
+      "check_period": 30,
+      "deleteOnExpire": true
+    },
+    "misc": {
+      "min_hour": 6,
+      "max_hour": 20,
+      "priorities_list": [1, 2, 3, 4]
+    }
+  }
+}
