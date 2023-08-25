@@ -32,9 +32,14 @@ export async function pfSenseDatabaseInit() : Promise<void> {
         const pfSenseResponse: any = await getPfSenseData(pfSense.ip);
         const pfSenseData: any = pfSenseResponse.data;
         for (const data of pfSenseData) {
+
+            let dataName: string = "";
+            if (data.name === "openvpn") dataName = data.description.split(":")[1].trim();
+            else dataName = data.name;
+
             const existingData: PfSenseServices[] = await prisma.pfSenseServices.findMany({
                 where: {
-                    name: data.name,
+                    name: dataName,
                     description: data.description,
                     pfSenseRequestId: data.id
                 }}
@@ -43,7 +48,7 @@ export async function pfSenseDatabaseInit() : Promise<void> {
             if (existingData.length === 0) {
                 const insertedData: any = await prisma.pfSenseServices.create({
                     data: {
-                        name: data.name,
+                        name: dataName,
                         description: data.description != null ? data.description : undefined,
                         pfSenseRequestId: data.id != null ? data.id : undefined,
                     }
