@@ -164,6 +164,10 @@ export function pfSenseServicesWatchdog(pfSenseIds: number[]): NodeJS.Timer {
             // TODO: change this to the return value when there is "nothing returned"
 
             const pfSenseServices: PfSenseServices[] = await pfsv.getPfSenseServicesByIds(assignedPfSenseServices.filter((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId === pfSense.id).map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseServiceId));
+            if (pfSenseServices.length === 0) {
+                console.log(theme.warning("No pfSense services found for pfSense " + pfSense.ip));
+                continue;
+            }
             for (let pfSenseService of pfSenseServices) {
                 let hitData: number[] = [];
                 let correspondingIndex: number = 0;
