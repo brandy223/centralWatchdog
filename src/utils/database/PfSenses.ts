@@ -9,6 +9,14 @@ const prisma = new PrismaClient(
 );
 
 /**
+ * Get all pfSenses servers in db
+ * @returns {Promise<PfSenses[]>} The pfSenses
+ */
+export async function getAllPfSenses() : Promise<PfSenses[]> {
+    return prisma.pfSenses.findMany();
+}
+
+/**
  * Get pfSenses by ids
  * @param {number[]} ids The ids of the pfSenses
  * @returns {Promise<PfSenses[]>} The pfSenses
