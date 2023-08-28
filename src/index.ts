@@ -1,3 +1,4 @@
+import {pfSenseDatabaseInit} from "./utils/database/PfSenses";
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -244,6 +245,7 @@ async function updateJobsListInCache(): Promise<void> {
  * @returns {Promise<void>}
  */
 async function updatePfSensesListInCache(): Promise<void> {
+    await pfSenseDatabaseInit();
     const pfSenseIds: number[] = (await pfs.getAllPfSenses()).map((pfSense: PfSenses) => pfSense.id);
     if (cache.get("pfSensesIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("pfSensesIds"), pfSenseIds))) return;
     cache.set("pfSensesIds", pfSenseIds, config.pfSense.cache_duration);
