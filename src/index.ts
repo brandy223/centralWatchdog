@@ -31,7 +31,7 @@ import {mainServerWatchdog} from "./utils/Services";
 // TYPES
 import {
     Jobs,
-    PfSenseAndServices,
+    PfSenses,
     Servers,
     ServersOfJobs,
     Services,
@@ -244,8 +244,7 @@ async function updateJobsListInCache(): Promise<void> {
  * @returns {Promise<void>}
  */
 async function updatePfSensesListInCache(): Promise<void> {
-    const assignedPfSenseServices: PfSenseAndServices[] = await pfsv.getAllPfSenseServicesAssignedToAPfSense();
-    const pfSenseIds: number[] = await ArrayUtils.getUniqueValuesFromArray(assignedPfSenseServices.map((pfSenseService: PfSenseAndServices) => pfSenseService.pfSenseId));
+    const pfSenseIds: number[] = (await pfs.getAllPfSenses()).map((pfSense: PfSenses) => pfSense.id);
     if (cache.get("pfSensesIds") !== undefined && (await ArrayUtils.compareArrays(cache.get("pfSensesIds"), pfSenseIds))) return;
     cache.set("pfSensesIds", pfSenseIds, config.pfSense.cache_duration);
     console.log(theme.debug(`PfSenses ids updated in cache`));
